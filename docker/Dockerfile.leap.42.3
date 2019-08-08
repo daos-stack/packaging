@@ -1,0 +1,56 @@
+#
+# Copyright 2019, Intel Corporation
+#
+# 'recipe' for Docker to build an RPM
+#
+
+# Pull base image
+FROM opensuse/leap:42.3
+MAINTAINER daos-stack <daos@daos.groups.io>
+
+# use same UID as host and default value of 1000 if not specified
+ARG UID=1000
+
+# Add build user (to keep rpmbuild happy)
+ENV USER build
+RUN useradd -u $UID -ms /bin/bash $USER
+RUN groupadd -g $UID $USER
+
+# Install basic tools
+RUN zypper --non-interactive update
+
+# basic building
+ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
+ENV TOOLS_42_3A="openSUSE:/Tools/openSUSE_42.3/openSUSE:Tools.repo"
+ENV TOOLS_42_3="${OPENSUSE_REPO}/${TOOLS_42_3A}"
+
+RUN zypper --non-interactive ar ${TOOLS_42_3}; \
+    zypper --non-interactive --gpg-auto-import-keys refresh
+RUN zypper --non-interactive install autoconf automake build                  \
+                                     ca-certificates-mozilla curl createrepo  \
+                                     git libtool lsb-release make             \
+                                     perl-libwww-perl perl-LWP-Protocol-https \
+                                     perl-XML-Parser rpm-build sudo
+
+# need to run the build command as root, as it needs to chroot
+RUN echo "build ALL=(ALL) NOPASSWD: /usr/bin/build" > /etc/sudoers.d/build
+
+# Need the repo for munge
+ARG JENKINS_URL=""
+ENV JENKINS_PATH="${JENKINS_URL}job/daos-stack/job"
+ENV JENKINS_ART="lastSuccessfulBuild/artifact/artifacts"
+ARG MNGE_BRANCH="master"
+RUN zypper --non-interactive ar --gpgcheck-allow-unsigned -f \
+    ${JENKINS_PATH}/munge/job/${MNGE_BRANCH}/${JENKINS_ART}/leap42.3 munge; \
+    zypper --non-interactive ref munge
+
+
+# Suse build utility can not handle spaces in the repo aliases.
+RUN zypper --non-interactive nr 'NON OSS' NON_OSS; \
+    zypper --non-interactive nr 'NON OSS Update' NON_OSS_Update; \
+    zypper --non-interactive nr 'OSS Update' OSS_Update
+
+# Suse build utility needs this refresh.
+# And the zypper lr report is handy to have.
+ARG CACHEBUST=1
+RUN zypper --non-interactive --no-gpg-checks refresh; zypper lr --details
