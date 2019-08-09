@@ -25,12 +25,14 @@ RUN zypper --non-interactive install autoconf automake build                  \
                                      git libtool lsb-release make             \
                                      perl-libwww-perl perl-LWP-Protocol-https \
                                      perl-XML-Parser rpm-build sudo
-
+                                     
 ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
 ENV TOOLS_12_3A="openSUSE:/Tools/SLE_12_SP3/openSUSE:Tools.repo"
 ENV TOOLS_12_3="${OPENSUSE_REPO}/${TOOLS_12_3A}"
 ENV HPC_12_3A="science:/HPC:/SLE12SP3_Missing/SLE_12_SP3"
 ENV HPC_12_3="${OPENSUSE_REPO}/${HPC_12_3A}/"
+ENV HPC_42_3A="science:/HPC/openSUSE_Leap_42.3/science:HPC.repo"
+ENV HPC_42_3="${OPENSUSE_REPO}/${HPC_42_3A}"
 
 #Temp patch until base docker image rebuilt
 #Disable older SLES repositories.
@@ -45,6 +47,7 @@ RUN zypper --non-interactive mr --disable http-10.8.0.10-099eb6aa; \
 
 RUN zypper --non-interactive ar -f ${TOOLS_12_3}; \
     zypper --non-interactive ar -f ${HPC_12_3} Science_HPC_SLE_12_SP3; \
+    zypper --non-interactive ar -f ${HPC_42_3}; \
     zypper --non-interactive --gpg-auto-import-keys refresh
 
 # need to run the build command as root, as it needs to chroot

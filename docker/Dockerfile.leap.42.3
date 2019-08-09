@@ -23,8 +23,11 @@ RUN zypper --non-interactive update
 ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
 ENV TOOLS_42_3A="openSUSE:/Tools/openSUSE_42.3/openSUSE:Tools.repo"
 ENV TOOLS_42_3="${OPENSUSE_REPO}/${TOOLS_42_3A}"
+ENV HPC_42_3A="science:/HPC/openSUSE_Leap_42.3/science:HPC.repo"
+ENV HPC_42_3="${OPENSUSE_REPO}/${HPC_42_3A}"
 
-RUN zypper --non-interactive ar ${TOOLS_42_3}; \
+RUN zypper --non-interactive ar -f ${TOOLS_42_3}; \
+    zypper --non-interactive ar -f ${HPC_42_3}; \
     zypper --non-interactive --gpg-auto-import-keys refresh
 RUN zypper --non-interactive install autoconf automake build                  \
                                      ca-certificates-mozilla curl createrepo  \
