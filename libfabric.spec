@@ -1,6 +1,6 @@
 Name: libfabric
 Version: 1.8.0
-Release: 1%{?dist}
+Release: 1.1%{?dist}
 Summary: User-space RDMA Fabric Interfaces
 %if 0%{?suse_version} >= 1315
 License: GPL-2.0-only OR BSD-2-Clause
@@ -153,7 +153,7 @@ rm -f %{buildroot}%{_libdir}/*.la
 %{_mandir}/man7/*
 
 %changelog
-* Fri Aug 09 2019 John E. Malmberg <john.e.malmberg@intel.com> - 1.8.0
+* Fri Aug 09 2019 John E. Malmberg <john.e.malmberg@intel.com> - 1.8.0-1.1
 - Fixes to use suse build utility for building.
 
 * Thu Jul 25 2019 Alexander A. Oganeozv <alexnader.a.oganezov@intel.com> - 1.8.0

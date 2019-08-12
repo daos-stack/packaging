@@ -1,10 +1,8 @@
 # Common Makefile for including
 # Needs the following variables set at a minium:
 # NAME :=
-# DEB_NAME :=
 # SRC_EXT :=
 # SOURCE =
-# ID_LIKE := $(shell . /etc/os-release; echo $$ID_LIKE)
 
 ifeq ($(DEB_NAME),)
 DEB_NAME := $(NAME)
@@ -52,9 +50,7 @@ else
 SED_EXPR := 1s/$(DIST)//p
 endif
 SPEC    := $(NAME).spec
-ifeq ($(VERSION),)
 VERSION := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{version}\n' $(SPEC) | sed -n '1p')
-endif
 DOT     := .
 DEB_VERS := $(subst rc,~rc,$(VERSION))
 DEB_RVERS := $(subst $(DOT),\$(DOT),$(DEB_VERS))
@@ -234,7 +230,7 @@ ls: $(TARGETS)
 	ls -ld $^
 
 ifneq ($(ID_LIKE),suse)
-chrootbuild: $(SRPM)  Makefile
+chrootbuild: $(SRPM) Makefile
 
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
