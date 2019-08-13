@@ -127,9 +127,7 @@ pipeline {
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL +
-                                                ' --build-arg CACHEBUST=' +
-                                                currentBuild.startTimeInMillis
+                                                env.JENKINS_URL
                         }
                     }
                     steps {
@@ -174,9 +172,7 @@ pipeline {
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL +
-                                                ' --build-arg CACHEBUST=' +
-                                                currentBuild.startTimeInMillis
+                                                env.JENKINS_URL
                         }
                     }
                     steps {

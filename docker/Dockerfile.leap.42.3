@@ -23,20 +23,33 @@ RUN zypper --non-interactive update
 ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
 ENV TOOLS_42_3A="openSUSE:/Tools/openSUSE_42.3/openSUSE:Tools.repo"
 ENV TOOLS_42_3="${OPENSUSE_REPO}/${TOOLS_42_3A}"
-ENV HPC_42_3A="science:/HPC/openSUSE_Leap_42.3/science:HPC.repo"
-ENV HPC_42_3="${OPENSUSE_REPO}/${HPC_42_3A}"
+ENV HPC_42_3="${OPENSUSE_REPO}/science:/HPC/openSUSE_Leap_42.3"
 
+# Two different syntax for ar depending on if the repository provides a .repo
 RUN zypper --non-interactive ar -f ${TOOLS_42_3}; \
-    zypper --non-interactive ar -f ${HPC_42_3}; \
+    zypper --non-interactive ar -f ${HPC_42_3}/science:HPC.repo; \
     zypper --non-interactive --gpg-auto-import-keys refresh
-RUN zypper --non-interactive install autoconf automake build                  \
+RUN zypper --non-interactive --no-gpg-checks refresh; \
+    zypper --non-interactive install autoconf automake build                  \
                                      ca-certificates-mozilla curl createrepo  \
                                      git libtool lsb-release make             \
                                      perl-libwww-perl perl-LWP-Protocol-https \
                                      perl-XML-Parser rpm-build sudo
 
-# need to run the build command as root, as it needs to chroot
-RUN echo "build ALL=(ALL) NOPASSWD: /usr/bin/build" > /etc/sudoers.d/build
+# need to run the zypper and build command as root, as it needs to chroot
+RUN echo "build ALL=(ALL) NOPASSWD: /usr/bin/build" > /etc/sudoers.d/build ; \
+    echo "build ALL=(ALL) NOPASSWD: " \
+    "/usr/bin/zypper --non-interactive --no-gpg-checks refresh" \
+     >> /etc/sudoers.d/build; \
+    chmod 0440 /etc/sudoers.d/build; \
+    visudo -c; \
+    sudo -l -U build
+
+
+# Suse build utility can not handle spaces in the repo aliases.
+RUN zypper --non-interactive nr 'NON OSS' NON_OSS; \
+    zypper --non-interactive nr 'NON OSS Update' NON_OSS_Update; \
+    zypper --non-interactive nr 'OSS Update' OSS_Update
 
 # Need the repo for munge
 ARG JENKINS_URL=""
@@ -47,13 +60,6 @@ RUN zypper --non-interactive ar --gpgcheck-allow-unsigned -f \
     ${JENKINS_PATH}/munge/job/${MNGE_BRANCH}/${JENKINS_ART}/leap42.3 munge; \
     zypper --non-interactive ref munge
 
-
-# Suse build utility can not handle spaces in the repo aliases.
-RUN zypper --non-interactive nr 'NON OSS' NON_OSS; \
-    zypper --non-interactive nr 'NON OSS Update' NON_OSS_Update; \
-    zypper --non-interactive nr 'OSS Update' OSS_Update
-
-# Suse build utility needs this refresh.
-# And the zypper lr report is handy to have.
-ARG CACHEBUST=1
-RUN zypper --non-interactive --no-gpg-checks refresh; zypper lr --details
+# These repositories can only be used by suse build if passed with a repo
+# command.
+RUN echo " --repo ${HPC_42_3}" > /tmp/build.repos

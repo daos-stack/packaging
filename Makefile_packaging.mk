@@ -23,25 +23,6 @@ ID_LIKE := suse
 DISTRO_ID := sle$(VERSION_ID)
 endif
 
-# For some reason this is needed for building some packages as while these
-# repos are present in zypp:// build is not finding packages in them.
-# libfabric needs libpsm2 from OpensUSE Leap 42.3 science:HPC repo.
-OSUSE_REPO := https://download.opensuse.org/repositories
-ifeq ($(DISTRO_ID),sle12.3)
-BUILD_OPTIONS += --repo
-BUILD_OPTIONS += $(OSUSE_REPO)/science:/HPC/openSUSE_Leap_42.3
-BUILD_OPTIONS += --repo
-BUILD_OPTIONS += http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64
-BUILD_OPTIONS += --repo
-BUILD_OPTIONS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64
-BUILD_OPTIONS += --repo
-BUILD_OPTIONS += http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64
-endif
-ifeq ($(DISTRO_ID),sl42.3)
-BUILD_OPTIONS += --repo
-BUILD_OPTIONS += $(OSUSE_REPO)/science:/HPC/openSUSE_Leap_42.3
-endif
-
 COMMON_RPM_ARGS := --define "%_topdir $$PWD/_topdir"
 DIST    := $(shell rpm $(COMMON_RPM_ARGS) --eval %{?dist})
 ifeq ($(DIST),)
@@ -234,8 +215,11 @@ chrootbuild: $(SRPM) Makefile
 
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
+ADD_REPOS := $(shell if [ -e /tmp/build.repos ]; then cat /tmp/build.repos; fi)
 chrootbuild: Makefile $(SOURCES)
-	sudo build $(BUILD_OPTIONS) --repo zypp:// \
+	zypper lr
+	sudo zypper --non-interactive --no-gpg-checks refresh
+	sudo build $(BUILD_OPTIONS) $(ADD_REPOS) --repo zypp:// \
 	   --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS)
 endif
 
