@@ -217,10 +217,10 @@ chrootbuild: $(SRPM) Makefile
 else
 ADD_REPOS := $(shell if [ -e /tmp/build.repos ]; then cat /tmp/build.repos; fi)
 chrootbuild: Makefile $(SOURCES)
-	zypper lr
+	zypper lr --details
 	sudo zypper --non-interactive --no-gpg-checks refresh
 	sudo build $(BUILD_OPTIONS) $(ADD_REPOS) --repo zypp:// \
-	   --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS)
+	  --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS)
 endif
 
 rpmlint: $(SPEC)

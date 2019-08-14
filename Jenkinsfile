@@ -209,6 +209,51 @@ pipeline {
                         }
                     }
                 } //stage('Build on Leap 42.3')
+                stage('Build on Leap 15') {
+                    agent {
+                        dockerfile {
+                            filename 'docker/Dockerfile.leap.15'
+                            label 'docker_runner'
+                            args '--privileged=true'
+                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
+                                                ' --build-arg JENKINS_URL=' +
+                                                env.JENKINS_URL
+                        }
+                    }
+                    steps {
+                        sh '''rm -rf artifacts/leap15/
+                              mkdir -p artifacts/leap15/
+                              make chrootbuild'''
+                    }
+                    post {
+                        success {
+                            sh '''mockbase=/var/tmp/build-root/home/abuild
+                                  mockroot=$mockbase/rpmbuild
+                                  artdir=$PWD/artifacts/leap15
+                                  (cd $mockroot &&
+                                   cp {RPMS/*,SRPMS}/* $artdir)
+                                  createrepo $artdir/'''
+                        }
+                        unsuccessful {
+                            sh '''mockbase=/var/tmp/build-root/home/abuild
+                                  mockroot=$mockbase/rpmbuild
+                                  artdir=$PWD/artifacts/leap15
+                                  (cd $mockroot/BUILD &&
+                                   find . -name configure -printf %h\\\\n | \
+                                   while read dir; do
+                                       if [ ! -f $dir/config.log ]; then
+                                           continue
+                                       fi
+                                       tdir="$artdir/autoconf-logs/$dir"
+                                       mkdir -p $tdir
+                                       cp -a $dir/config.log $tdir/
+                                   done)'''
+                        }
+                        cleanup {
+                            archiveArtifacts artifacts: 'artifacts/leap15/**'
+                        }
+                    }
+                } //stage('Build on Leap 15')
                 stage('Build on Ubuntu 18.04') {
                     agent {
                         dockerfile {
