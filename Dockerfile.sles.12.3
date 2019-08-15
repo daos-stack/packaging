@@ -21,9 +21,25 @@ RUN zypper --non-interactive --no-gpg-checks refresh; \
     zypper --non-interactive update
 
 # basic building
+# SLES-12SP3 needs ca-certificates-mozilla before adding the repos.
 RUN zypper --non-interactive --no-gpg-checks refresh; \
-    zypper --non-interactive install autoconf automake build                  \
-                                     ca-certificates-mozilla curl createrepo  \
+    zypper --non-interactive install ca-certificates-mozilla
+
+ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
+ENV TOOLS_12_3A="openSUSE:/Tools/SLE_12_SP3/openSUSE:Tools.repo"
+ENV TOOLS_12_3="${OPENSUSE_REPO}/${TOOLS_12_3A}"
+ENV HPC_12_3A="science:/HPC:/SLE12SP3_Missing/SLE_12_SP3"
+ENV HPC_12_3="${OPENSUSE_REPO}/${HPC_12_3A}/"
+ENV HPC_42_3="${OPENSUSE_REPO}/science:/HPC/openSUSE_Leap_42.3"
+
+# Two different syntax for ar depending on if the repository provides a .repo
+RUN zypper --non-interactive ar -f ${TOOLS_12_3}; \
+    zypper --non-interactive ar -f ${HPC_42_3}/science:HPC.repo; \
+    zypper --non-interactive ar -f ${HPC_12_3} Science_HPC_SLE_12_SP3; \
+    zypper --non-interactive --gpg-auto-import-keys refresh
+
+RUN zypper --non-interactive --no-gpg-checks refresh; \
+    zypper --non-interactive install autoconf automake build curl createrepo  \
                                      git libtool lsb-release make             \
                                      perl-libwww-perl perl-LWP-Protocol-https \
                                      perl-XML-Parser rpm-build sudo
@@ -37,8 +53,6 @@ RUN echo "#includedir /etc/sudoers.d" >> /etc/sudoers; \
     chmod 0440 /etc/sudoers.d/build; \
     visudo -c; \
     sudo -l -U build
-    
-
                              
 #Temp patch until base docker image rebuilt
 #Disable older SLES repositories.
@@ -50,19 +64,6 @@ RUN zypper --non-interactive mr --disable http-10.8.0.10-099eb6aa; \
     zypper --non-interactive mr --disable http-10.8.0.10-ae069f46; \
     zypper --non-interactive mr --disable http-10.8.0.10-b2e5365a; \
     zypper --non-interactive mr --disable http-10.8.0.10-c059c690 || true
-
-ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
-ENV TOOLS_12_3A="openSUSE:/Tools/SLE_12_SP3/openSUSE:Tools.repo"
-ENV TOOLS_12_3="${OPENSUSE_REPO}/${TOOLS_12_3A}"
-ENV HPC_12_3A="science:/HPC:/SLE12SP3_Missing/SLE_12_SP3"
-ENV HPC_12_3="${OPENSUSE_REPO}/${HPC_12_3A}/"
-ENV HPC_42_3="${OPENSUSE_REPO}/science:/HPC/openSUSE_Leap_42.3"
-
-# Two different syntax for ar depending on if the repository provides a .repo
-RUN zypper --non-interactive ar -f ${TOOLS_12_3}; \
-    zypper --non-interactive ar -f ${HPC_42_3}science:HPC.repo; \
-    zypper --non-interactive ar -f ${HPC_12_3} Science_HPC_SLE_12_SP3; \
-    zypper --non-interactive --gpg-auto-import-keys refresh
 
 ARG JENKINS_URL=""
 ENV JENKINS_PATH="${JENKINS_URL}job/daos-stack/job"

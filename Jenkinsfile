@@ -55,7 +55,7 @@ pipeline {
                 stage('RPM Lint') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.centos.7'
+                            filename 'Dockerfile.centos.7'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -74,7 +74,7 @@ pipeline {
                 stage('Build on CentOS 7') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.centos.7'
+                            filename 'Dockerfile.centos.7'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -122,7 +122,7 @@ pipeline {
                            environment name: 'SLES12_3_DOCKER', value: 'true' }
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.sles.12.3'
+                            filename 'Dockerfile.sles.12.3'
                             label 'docker_runner'
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
@@ -167,7 +167,7 @@ pipeline {
                 stage('Build on Leap 42.3') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.leap.42.3'
+                            filename 'Dockerfile.leap.42.3'
                             label 'docker_runner'
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
@@ -212,7 +212,7 @@ pipeline {
                 stage('Build on Leap 15') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.leap.15'
+                            filename 'Dockerfile.leap.15'
                             label 'docker_runner'
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
@@ -257,7 +257,7 @@ pipeline {
                 stage('Build on Ubuntu 18.04') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.ubuntu.18.04'
+                            filename 'Dockerfile.ubuntu.18.04'
                             label 'docker_runner'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
@@ -298,7 +298,7 @@ pipeline {
                 stage('Build on Ubuntu 18.10') {
                     agent {
                         dockerfile {
-                            filename 'docker/Dockerfile.ubuntu.18.10'
+                            filename 'Dockerfile.ubuntu.18.10'
                             label 'docker_runner'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +

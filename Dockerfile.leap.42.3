@@ -29,6 +29,7 @@ ENV HPC_42_3="${OPENSUSE_REPO}/science:/HPC/openSUSE_Leap_42.3"
 RUN zypper --non-interactive ar -f ${TOOLS_42_3}; \
     zypper --non-interactive ar -f ${HPC_42_3}/science:HPC.repo; \
     zypper --non-interactive --gpg-auto-import-keys refresh
+
 RUN zypper --non-interactive --no-gpg-checks refresh; \
     zypper --non-interactive install autoconf automake build                  \
                                      ca-certificates-mozilla curl createrepo  \
