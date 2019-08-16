@@ -229,19 +229,19 @@ gpgcheck = False\n" >> /etc/mock/default.cfg;                                   
 	echo "\"\"\"" >> /etc/mock/default.cfg
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
-sle12.3_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
-	         --repo http://10.8.0.10/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                 \
-	         --repo http://10.8.0.10/cobbler/repo_mirror/sdk-sles12.3-x86_64                        \
-	         --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	         --repo http://10.8.0.10/cobbler/repo_mirror/updates-sles12.3-x86_64                    \
-	         --repo http://mgmt-1.wolf.hpdd.intel.com/cobbler/pub/SLES-12.3-x86_64/
+sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
+	       --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                 \
+	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                        \
+	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
+	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                    \
+	       --repo http://mgmt-1.wolf.hpdd.intel.com/cobbler/pub/SLES-12.3-x86_64/
 
-sl42.3_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
-	        --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
-	        --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
+sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
+	      --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
+	      --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
 
-sl15.1_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
-	        --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
+sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
+	      --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
 
 chrootbuild: $(SRPM) Makefile
 	add_repos="";                                                       \
@@ -265,7 +265,7 @@ chrootbuild: $(SRPM) Makefile
             add_repos+=" --repo $$baseurl";                                 \
         done;                                                               \
 	sudo build --nosignature $(BUILD_OPTIONS) $$add_repos               \
-	     $($(DISTRO_ID)_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
+	     $($(basename DISTRO_ID)_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
 	     $(SRPM)
 endif
 
