@@ -265,7 +265,7 @@ chrootbuild: $(SRPM) Makefile
             add_repos+=" --repo $$baseurl";                                 \
         done;                                                               \
 	sudo build --nosignature $(BUILD_OPTIONS) $$add_repos               \
-	     $($(basename DISTRO_ID)_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
+	     $($(basename $(DISTRO_ID))_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
 	     $(SRPM)
 endif
 
