@@ -1,10 +1,12 @@
+%define lib_major 1
+
 Name: libfabric
 Version: 1.8.0
-Release: 1.1%{?dist}
+Release: 2%{?dist}
 Summary: User-space RDMA Fabric Interfaces
 %if 0%{?suse_version} >= 1315
 License: GPL-2.0-only OR BSD-2-Clause
-Group: Development/Libraries/C and C++    
+Group: Development/Libraries/C and C++
 %else
 Group: System Environment/Libraries
 License: GPLv2 or BSD
@@ -14,19 +16,16 @@ Source: https://github.com/ofiwg/%{name}/archive/v%{version}.tar.gz
 
 %if 0%{?rhel} >= 7
 BuildRequires: librdmacm-devel
-BuildRequires: libibverbs-devel >= 1.2.0
-BuildRequires: libnl3-devel
 # needed for psm2_am_register_handlers_2@PSM2_1.0
 BuildRequires: libpsm2-devel >= 10.3.58
 %else
 %if 0%{?suse_version} >= 1315
-BuildRequires: libibverbs-devel >= 1.2.0
 BuildRequires: rdma-core-devel
+%endif
+%endif
+BuildRequires: libibverbs-devel >= 1.2.0
 BuildRequires: libnl3-devel
 BuildRequires: fdupes
-%define lib_major 1
-%endif
-%endif
 
 # infinipath-psm-devel only available for x86_64
 %ifarch x86_64
@@ -57,16 +56,14 @@ BuildRequires: autoconf, automake, libtool
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA.
 
-%if 0%{?suse_version} >= 01315
 %package       -n %{name}%{?lib_major}
-Summary:        User-space RDMA fabric interfaces
+Summary:        Shared library for libfabric
 Group:          System/Libraries
+Obsoletes: %{name} < %{version}-%{release}
 
 %description -n %{name}%{?lib_major}
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA. This package contains the runtime library.
-
-%endif
 
 %package devel
 Summary: Development files for the libfabric library
@@ -78,12 +75,8 @@ Group: System Environment/Libraries
 Requires: %{name}%{?lib_major}%{?_isa} = %{version}-%{release}
 
 %description devel
-%if 0%{?suse_version} >= 01315
 libfabric provides a user-space API to access high-performance fabric
-services, such as RDMA. This package contains the development files.    
-%else
-Development files for the libfabric library.
-%endif
+services, such as RDMA. This package contains the development files.
 
 %prep
 %setup -q
@@ -106,47 +99,27 @@ make %{?_smp_mflags} V=1
 %make_install
 # remove unpackaged files from the buildroot
 rm -f %{buildroot}%{_libdir}/*.la
-%if 0%{?suse_version} >= 01315
 %fdupes %{buildroot}/%{_prefix}
 
 %post -n libfabric%{lib_major} -p /sbin/ldconfig
 %postun -n libfabric%{lib_major} -p /sbin/ldconfig
-%else
 
-%post -p /sbin/ldconfig
-%postun -p /sbin/ldconfig
-%endif
-
-%if 0%{?suse_version} >= 01315
 %files
 %defattr(-,root,root,-)
 %{_bindir}/*
 %{_mandir}/man1/*
 %doc NEWS.md
 %license COPYING
-%endif
 
 %files -n libfabric%{?lib_major}
-%if 0%{?suse_version} >= 01315
 %defattr(-,root,root)
-%endif    
 %{_libdir}/libfabric.so.*
-%if 0%{?rhel} >= 7
-%{_bindir}/fi_info
-%{_bindir}/fi_pingpong
-%{_bindir}/fi_strerror
-%{_libdir}/pkgconfig/%{name}.pc
-%{_mandir}/man1/*
-%endif
 %license COPYING
 %doc AUTHORS README
 
 %files devel
-%if 0%{?suse_version} >= 01315
 %defattr(-,root,root)
 %{_libdir}/pkgconfig/%{name}.pc
-
-%endif
 %{_libdir}/libfabric.so
 %{_includedir}/*
 %{_mandir}/man3/*
