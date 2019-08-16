@@ -264,8 +264,9 @@ chrootbuild: $(SRPM) Makefile
 	    baseurl+=lastSuccessfulBuild/artifact/artifacts/$$distro/;      \
             add_repos+=" --repo $$baseurl";                                 \
         done;                                                               \
-	sudo build $(BUILD_OPTIONS) $$add_repos $($(DISTRO_ID)_REPOS)       \
-	  --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
+	sudo build --nosignature $(BUILD_OPTIONS) $$add_repos               \
+	     $($(DISTRO_ID)_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
+	     $(SRPM)
 endif
 
 rpmlint: $(SPEC)
