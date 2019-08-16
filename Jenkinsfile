@@ -101,7 +101,7 @@ pipeline {
                                   cp -af _topdir/SRPMS $artdir
                                   (cd $mockroot/result/ &&
                                    cp -r . $artdir)
-                                  (cd $mockroot/root/builddir/build/BUILD/*/
+                                  (if cd $mockroot/root/builddir/build/BUILD/*/; then
                                    find . -name configure -printf %h\\\\n | \
                                    while read dir; do
                                        if [ ! -f $dir/config.log ]; then
@@ -110,7 +110,8 @@ pipeline {
                                        tdir="$artdir/autoconf-logs/$dir"
                                        mkdir -p $tdir
                                        cp -a $dir/config.log $tdir/
-                                   done)'''
+                                   done
+                                   fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/centos7/**'
@@ -118,8 +119,10 @@ pipeline {
                     }
                 } //stage('Build on CentOS 7')
                 stage('Build on SLES 12.3') {
-                    when { beforeAgent true
-                           environment name: 'SLES12_3_DOCKER', value: 'true' }
+                    when {
+                        beforeAgent true
+                        environment name: 'SLES12_3_DOCKER', value: 'true'
+                    }
                     agent {
                         dockerfile {
                             filename 'Dockerfile.sles.12.3'
@@ -148,7 +151,7 @@ pipeline {
                             sh '''mockbase=/var/tmp/build-root/home/abuild
                                   mockroot=$mockbase/rpmbuild
                                   artdir=$PWD/artifacts/sles12.3
-                                  (cd $mockroot/BUILD &&
+                                  (if cd $mockroot/BUILD; then
                                    find . -name configure -printf %h\\\\n | \
                                    while read dir; do
                                        if [ ! -f $dir/config.log ]; then
@@ -157,7 +160,8 @@ pipeline {
                                        tdir="$artdir/autoconf-logs/$dir"
                                        mkdir -p $tdir
                                        cp -a $dir/config.log $tdir/
-                                   done)'''
+                                       done
+                                   fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/sles12.3/**'
@@ -193,7 +197,7 @@ pipeline {
                             sh '''mockbase=/var/tmp/build-root/home/abuild
                                   mockroot=$mockbase/rpmbuild
                                   artdir=$PWD/artifacts/leap42.3
-                                  (cd $mockroot/BUILD &&
+                                  (if cd $mockroot/BUILD; then
                                    find . -name configure -printf %h\\\\n | \
                                    while read dir; do
                                        if [ ! -f $dir/config.log ]; then
@@ -202,7 +206,8 @@ pipeline {
                                        tdir="$artdir/autoconf-logs/$dir"
                                        mkdir -p $tdir
                                        cp -a $dir/config.log $tdir/
-                                   done)'''
+                                       done
+                                   fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/leap42.3/**'
@@ -238,7 +243,7 @@ pipeline {
                             sh '''mockbase=/var/tmp/build-root/home/abuild
                                   mockroot=$mockbase/rpmbuild
                                   artdir=$PWD/artifacts/leap15
-                                  (cd $mockroot/BUILD &&
+                                  (if cd $mockroot/BUILD; then
                                    find . -name configure -printf %h\\\\n | \
                                    while read dir; do
                                        if [ ! -f $dir/config.log ]; then
@@ -247,7 +252,8 @@ pipeline {
                                        tdir="$artdir/autoconf-logs/$dir"
                                        mkdir -p $tdir
                                        cp -a $dir/config.log $tdir/
-                                   done)'''
+                                       done
+                                   fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/leap15/**'

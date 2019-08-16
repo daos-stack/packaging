@@ -210,17 +210,60 @@ debs: $(DEBS)
 ls: $(TARGETS)
 	ls -ld $^
 
-ifneq ($(ID_LIKE),suse)
+ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) Makefile
-
+	echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
+	for repo in $(ADD_REPOS); do                                                 \
+	    if [[ $$repo = *@* ]]; then                                          \
+	        branch="$${repo#*@}";                                            \
+	        repo="$${repo%@*}";                                              \
+	    else                                                                 \
+	        branch="master";                                                 \
+	    fi;                                                                  \
+	    echo -e "[$$repo:$$branch:lastSuccessful]\n\
+name=$$repo:$$branch:lastSuccessful\n\
+baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
+enabled=1\n\
+gpgcheck = False\n" >> /etc/mock/default.cfg;                                    \
+	done;                                                                    \
+	echo "\"\"\"" >> /etc/mock/default.cfg
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
-ADD_REPOS := $(shell if [ -e /tmp/build.repos ]; then cat /tmp/build.repos; fi)
-chrootbuild: Makefile $(SOURCES)
-	zypper lr --details
-	sudo zypper --non-interactive --no-gpg-checks refresh
-	sudo build $(BUILD_OPTIONS) $(ADD_REPOS) --repo zypp:// \
-	  --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS)
+sle12.3_REPOS += --repo http://10.8.0.10/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                 \
+	         --repo http://10.8.0.10/cobbler/repo_mirror/sdk-sles12.3-x86_64                        \
+	         --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
+	         --repo http://10.8.0.10/cobbler/repo_mirror/updates-sles12.3-x86_64                    \
+	         --repo http://mgmt-1.wolf.hpdd.intel.com/cobbler/pub/SLES-12.3-x86_64/
+
+sl42.3_REPOS += --repo http://download.opensuse.org/update/leap/42.3/oss/                 \
+	        --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
+
+sl15.1_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
+	        --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
+
+chrootbuild: $(SRPM) Makefile
+	add_repos="";                                                       \
+	for repo in $(ADD_REPOS); do                                        \
+	    if [[ $$repo = *@* ]]; then                                     \
+	        branch="$${repo#*@}";                                       \
+	        repo="$${repo%@*}";                                         \
+	    else                                                            \
+	        branch="master";                                            \
+	    fi;                                                             \
+	    case $(DISTRO_ID) in                                            \
+	        sle12.3) distro="sles12.3";                                 \
+	        ;;                                                          \
+	        sl42.3) distro="leap42.3";                                  \
+	        ;;                                                          \
+	        sl15.1) distro="leap15.1";                                  \
+	        ;;                                                          \
+	    esac;                                                           \
+	    baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/; \
+	    baseurl+=lastSuccessfulBuild/artifact/artifacts/$$distro/;      \
+            add_repos+=" --repo $$baseurl";                                 \
+        done;                                                               \
+	sudo build $(BUILD_OPTIONS) $$add_repos $($(DISTRO_ID)_REPOS)       \
+	  --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
 endif
 
 rpmlint: $(SPEC)
