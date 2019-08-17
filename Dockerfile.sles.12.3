@@ -30,11 +30,11 @@ RUN zypper --non-interactive in autoconf automake                        \
 RUN if ! grep "^#includedir /etc/sudoers.d" /etc/sudoers; then              \
         echo "#includedir /etc/sudoers.d" >> /etc/sudoers;                  \
     fi;                                                                     \
-    echo "build ALL=(ALL) NOPASSWD: /usr/bin/build" > /etc/sudoers.d/build ; \
-    chmod 0440 /etc/sudoers.d/build; \
-    visudo -c; \
+    echo "build ALL=(ALL) NOPASSWD: /usr/bin/build" > /etc/sudoers.d/build; \
+    chmod 0440 /etc/sudoers.d/build;                                        \
+    visudo -c;                                                              \
     sudo -l -U build
-                             
+
 ENV OPENSUSE_REPO="https://download.opensuse.org/repositories"
 ENV TOOLS="${OPENSUSE_REPO}/openSUSE:Tools/SLE_12_SP3/openSUSE:Tools.repo"
 
