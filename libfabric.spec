@@ -1,4 +1,4 @@
-%define lib_major 1
+%define libname libfabric1
 
 Name: libfabric
 Version: 1.8.0
@@ -56,12 +56,12 @@ BuildRequires: autoconf, automake, libtool
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA.
 
-%package       -n %{name}%{?lib_major}
-Summary:        Shared library for libfabric
-Group:          System/Libraries
+%package -n %{libname}
+Summary: Shared library for libfabric
+Group:  System/Libraries
 Obsoletes: %{name} < %{version}-%{release}
 
-%description -n %{name}%{?lib_major}
+%description -n %{libname}
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA. This package contains the runtime library.
 
@@ -72,7 +72,7 @@ Group: Development/Libraries/C and C++
 %else
 Group: System Environment/Libraries
 %endif
-Requires: %{name}%{?lib_major}%{?_isa} = %{version}-%{release}
+Requires: %{libname}%{?_isa} = %{version}-%{release}
 
 %description devel
 libfabric provides a user-space API to access high-performance fabric
@@ -101,8 +101,8 @@ make %{?_smp_mflags} V=1
 rm -f %{buildroot}%{_libdir}/*.la
 %fdupes %{buildroot}/%{_prefix}
 
-%post -n libfabric%{lib_major} -p /sbin/ldconfig
-%postun -n libfabric%{lib_major} -p /sbin/ldconfig
+%post -n %{libname} -p /sbin/ldconfig
+%postun -n %{libname} -p /sbin/ldconfig
 
 %files
 %defattr(-,root,root,-)
@@ -111,7 +111,7 @@ rm -f %{buildroot}%{_libdir}/*.la
 %doc NEWS.md
 %license COPYING
 
-%files -n libfabric%{?lib_major}
+%files -n %{libname}
 %defattr(-,root,root)
 %{_libdir}/libfabric.so.*
 %license COPYING
@@ -126,8 +126,10 @@ rm -f %{buildroot}%{_libdir}/*.la
 %{_mandir}/man7/*
 
 %changelog
-* Fri Aug 09 2019 John E. Malmberg <john.e.malmberg@intel.com> - 1.8.0-1.1
-- Fixes to use suse build utility for building.
+* Fri Aug 16 2019 Brian J. Murrell <brian.murrell@intel.com> - 1.8.0-1
+- install libnl3-devel on all platforms
+- create a libfabric1 subpackage with the shared library
+- clean up much of SUSE's post build linting errors/warnings
 
 * Thu Jul 25 2019 Alexander A. Oganeozv <alexnader.a.oganezov@intel.com> - 1.8.0
 - Update to 1.8.0
