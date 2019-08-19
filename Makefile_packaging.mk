@@ -24,6 +24,7 @@ DISTRO_ID := sle$(VERSION_ID)
 endif
 
 BUILD_OS ?= leap.42.3
+PACKAGING_CHECK_DIR ?= ../packaging
 COMMON_RPM_ARGS := --define "%_topdir $$PWD/_topdir"
 DIST    := $(shell rpm $(COMMON_RPM_ARGS) --eval %{?dist})
 ifeq ($(DIST),)
@@ -235,7 +236,7 @@ sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/op
 	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                        \
 	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
 	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                    \
-	       --repo http://mgmt-1.wolf.hpdd.intel.com/cobbler/pub/SLES-12.3-x86_64/
+	       --repo http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
 sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
 	      --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
@@ -273,24 +274,23 @@ endif
 docker_chrootbuild:
 	docker build --build-arg UID=$$(id -u) -t $(BUILD_OS)-chrootbuild \
 	             -f packaging/Dockerfile.$(BUILD_OS) .
-	docker run --privileged=true -w /home/brian/daos/rpm/openpa           \
-	           -v=/home/brian/daos/rpm/openpa:/home/brian/daos/rpm/openpa \
+	docker run --privileged=true -w $$PWD -v=$$PWD:$$PWD              \
 	           -it $(BUILD_OS)-chrootbuild bash -c "make chrootbuild"
 
 rpmlint: $(SPEC)
 	rpmlint $<
 
 packaging_check:
-	diff --exclude \*.sw?              \
-	     --exclude debian              \
-	     --exclude .git                \
-	     --exclude Jenkinsfile         \
-	     --exclude libfabric.spec      \
-	     --exclude Makefile            \
-	     --exclude README.md           \
-	     --exclude _topdir             \
-	     --exclude \*.tar.\*           \
-	     -ur ../packaging/ packaging/
+	diff --exclude \*.sw?                       \
+	     --exclude debian                       \
+	     --exclude .git                         \
+	     --exclude Jenkinsfile                  \
+	     --exclude libfabric.spec               \
+	     --exclude Makefile                     \
+	     --exclude README.md                    \
+	     --exclude _topdir                      \
+	     --exclude \*.tar.\*                    \
+	     -ur $(PACKAGING_CHECK_DIR)/ packaging/
 
 check-env:
 ifndef DEBEMAIL
