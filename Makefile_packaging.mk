@@ -237,10 +237,10 @@ gpgcheck = False\n" >> /etc/mock/default.cfg;                                   
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
 sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
-	       --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                 \
-	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                        \
+	       --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
+	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                          \
 	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                    \
+	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                      \
 	       --repo http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
 sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
@@ -271,9 +271,11 @@ chrootbuild: $(SRPM) Makefile
 	    baseurl+=lastSuccessfulBuild/artifact/artifacts/$$distro/;      \
             add_repos+=" --repo $$baseurl";                                 \
         done;                                                               \
-	sudo build --nosignature $(BUILD_OPTIONS) $$add_repos               \
-	     $($(basename $(DISTRO_ID))_REPOS) --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) \
-	     $(SRPM)
+	curl -O http://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/repodata/repomd.xml.key; \
+	sudo rpm --import repomd.xml.key;                                   \
+	sudo build $(BUILD_OPTIONS) $$add_repos                             \
+	     $($(basename $(DISTRO_ID))_REPOS)                              \
+	     --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
 endif
 
 docker_chrootbuild:
