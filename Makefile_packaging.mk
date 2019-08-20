@@ -214,21 +214,26 @@ ls: $(TARGETS)
 
 ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) Makefile
-	echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
-	for repo in $(ADD_REPOS); do                                                 \
-	    if [[ $$repo = *@* ]]; then                                          \
-	        branch="$${repo#*@}";                                            \
-	        repo="$${repo%@*}";                                              \
-	    else                                                                 \
-	        branch="master";                                                 \
-	    fi;                                                                  \
-	    echo -e "[$$repo:$$branch:lastSuccessful]\n\
+	if [ -w /etc/mock/default.cfg ]; then                                    \
+	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
+	    for repo in $(ADD_REPOS); do                                             \
+	        if [[ $$repo = *@* ]]; then                                          \
+	            branch="$${repo#*@}";                                            \
+	            repo="$${repo%@*}";                                              \
+	        else                                                                 \
+	            branch="master";                                                 \
+	        fi;                                                                  \
+	        echo -e "[$$repo:$$branch:lastSuccessful]\n\
 name=$$repo:$$branch:lastSuccessful\n\
 baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
 enabled=1\n\
-gpgcheck = False\n" >> /etc/mock/default.cfg;                                    \
-	done;                                                                    \
-	echo "\"\"\"" >> /etc/mock/default.cfg
+gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
+	    done;                                                                    \
+	    echo "\"\"\"" >> /etc/mock/default.cfg;                                  \
+	else                                                                         \
+	    echo "Unable to update /etc/mock/default.cfg.";                          \
+            echo "You need to make sure it has the needed repos in it yourself.";    \
+	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
 sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
@@ -290,7 +295,7 @@ packaging_check:
 	     --exclude README.md                    \
 	     --exclude _topdir                      \
 	     --exclude \*.tar.\*                    \
-	     -ur $(PACKAGING_CHECK_DIR)/ packaging/
+	     -bur $(PACKAGING_CHECK_DIR)/ packaging/
 
 check-env:
 ifndef DEBEMAIL
