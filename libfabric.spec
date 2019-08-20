@@ -1,4 +1,4 @@
-%define libname libfabric1
+%define suse_libname libfabric1
 
 Name: libfabric
 Version: 1.8.0
@@ -16,8 +16,6 @@ Source: https://github.com/ofiwg/%{name}/archive/v%{version}.tar.gz
 
 %if 0%{?rhel} >= 7
 BuildRequires: librdmacm-devel
-# needed for psm2_am_register_handlers_2@PSM2_1.0
-BuildRequires: libpsm2-devel >= 10.3.58
 %else
 %if 0%{?suse_version} >= 1315
 BuildRequires: rdma-core-devel
@@ -29,6 +27,7 @@ BuildRequires: fdupes
 
 # infinipath-psm-devel only available for x86_64
 %ifarch x86_64
+# needed for psm2_am_register_handlers_2@PSM2_1.0
 BuildRequires: infinipath-psm-devel
 %if 0%{?suse_version} >= 1315 || 0%{?rhel} >= 7
 BuildRequires: libpsm2-devel >= 10.3.58
@@ -56,27 +55,28 @@ BuildRequires: autoconf, automake, libtool
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA.
 
-%package -n %{libname}
+%if 0%{?suse_version} >= 01315
+%package -n %{suse_libname}
 Summary: Shared library for libfabric
 Group:  System/Libraries
-Obsoletes: %{name} < %{version}-%{release}
 
-%description -n %{libname}
+%description -n %{suse_libname}
 libfabric provides a user-space API to access high-performance fabric
 services, such as RDMA. This package contains the runtime library.
+%endif
 
 %package devel
 Summary: Development files for the libfabric library
 %if 0%{?suse_version} >= 01315
 Group: Development/Libraries/C and C++
+Requires: %{suse_libname}%{?_isa} = %{version}-%{release}
 %else
 Group: System Environment/Libraries
+Requires: %{name}%{?_isa} = %{version}-%{release}
 %endif
-Requires: %{libname}%{?_isa} = %{version}-%{release}
 
 %description devel
-libfabric provides a user-space API to access high-performance fabric
-services, such as RDMA. This package contains the development files.
+Development files for the libfabric library.
 
 %prep
 %setup -q
@@ -101,37 +101,52 @@ make %{?_smp_mflags} V=1
 rm -f %{buildroot}%{_libdir}/*.la
 %fdupes %{buildroot}/%{_prefix}
 
-%post -n %{libname} -p /sbin/ldconfig
-%postun -n %{libname} -p /sbin/ldconfig
+%if 0%{?suse_version} >= 01315
+%post -n %{suse_libname} -p /sbin/ldconfig
+%postun -n %{suse_libname} -p /sbin/ldconfig
+%else
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
+%endif
 
 %files
 %defattr(-,root,root,-)
-%{_bindir}/*
+%if 0%{?rhel} >= 7
+%{_libdir}/libfabric.so.*
+%endif
+%{_bindir}/fi_info
+%{_bindir}/fi_pingpong
+%{_bindir}/fi_strerror
+%if 0%{?rhel} >= 7
+%{_libdir}/pkgconfig/%{name}.pc
+%endif
 %{_mandir}/man1/*
 %doc NEWS.md
 %license COPYING
 
-%files -n %{libname}
+%if 0%{?suse_version} >= 01315
+%files -n %{suse_libname}
 %defattr(-,root,root)
 %{_libdir}/libfabric.so.*
 %license COPYING
 %doc AUTHORS README
+%endif
 
 %files devel
 %defattr(-,root,root)
-%{_libdir}/pkgconfig/%{name}.pc
 %{_libdir}/libfabric.so
+%{_libdir}/pkgconfig/%{name}.pc
 %{_includedir}/*
 %{_mandir}/man3/*
 %{_mandir}/man7/*
 
 %changelog
-* Fri Aug 16 2019 Brian J. Murrell <brian.murrell@intel.com> - 1.8.0-1
+* Tue Aug 20 2019 Brian J. Murrell <brian.murrell@intel.com> - 1.8.0-2
 - install libnl3-devel on all platforms
 - create a libfabric1 subpackage with the shared library
 - clean up much of SUSE's post build linting errors/warnings
 
-* Thu Jul 25 2019 Alexander A. Oganeozv <alexnader.a.oganezov@intel.com> - 1.8.0
+* Thu Jul 25 2019 Alexander A. Oganeozv <alexnader.a.oganezov@intel.com> - 1.8.0-1
 - Update to 1.8.0
 
 * Wed Jun 26 2019 Brian J. Murrell <brian.murrell@intel.com> - 1.7.1rc1-4
