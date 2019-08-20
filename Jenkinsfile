@@ -50,28 +50,9 @@ pipeline {
                 cancelPreviousBuilds()
             }
         }
-        stage('Lint') {
-            stages {
-                stage('RPM Lint') {
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.mockbuild'
-                            label 'docker_runner'
-                            args  '--group-add mock' +
-                                  ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
-                            additionalBuildArgs  '--build-arg UID=$(id -u)'
-                        }
-                    }
-                    steps {
-                        sh 'make rpmlint'
-                    }
-                }
-            }
-        } //stage('Lint')
         stage('Build') {
             parallel {
-                stage('Build on CentOS 7') {
+                stage('Build libfabric on CentOS 7') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -85,160 +66,41 @@ pipeline {
                          }
                     }
                     steps {
-                        sh label: "Build package",
-                        script: '''rm -rf artifacts/centos7/
-                              mkdir -p artifacts/centos7/
-                              make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric"
+                        sh label: env.STAGE_NAME,
+                           script: '''rm -rf libfabric/packaging/
+                                      mkdir libfabric/packaging/
+                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
+                                      cd libfabric/
+                                      rm -rf artifacts/centos7/
+                                      mkdir -p artifacts/centos7/
+                                      make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
                     }
                     post {
-                        success {
-                            sh label: "Collect artifacts",
-                               script: '''(cd /var/lib/mock/epel-7-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/centos7/)
-                                          createrepo artifacts/centos7/'''
-                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                            script: '''mockroot=/var/lib/mock/epel-7-x86_64
-                                              ls -l $mockroot/result/
-                                              cat $mockroot/result/{root,build}.log
-                                  artdir=$PWD/artifacts/centos7
-                                  cp -af _topdir/SRPMS $artdir
-                                  (cd $mockroot/result/ &&
-                                   cp -r . $artdir)
-                                  (if cd $mockroot/root/builddir/build/BUILD/*/; then
-                                   find . -name configure -printf %h\\\\n | \
-                                   while read dir; do
-                                       if [ ! -f $dir/config.log ]; then
-                                           continue
-                                       fi
-                                       tdir="$artdir/autoconf-logs/$dir"
-                                       mkdir -p $tdir
-                                       cp -a $dir/config.log $tdir/
-                                   done
-                                   fi)'''
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/centos7/**'
-                        }
-                    }
-                } //stage('Build on CentOS 7')
-                stage('Build on SLES 12.3') {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            environment name: 'SLES12_3_DOCKER', value: 'true'
-                            expression { false }
-                        }
-                    }
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.mockbuild'
-                            label 'docker_runner'
-                            args  '--group-add mock' +
-                                  ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL
-                        }
-                    }
-                    steps {
-                        sh label: "Build package",
-                        script: '''rm -rf artifacts/sles12.3/
-                              mkdir -p artifacts/sles12.3/
-                              make CHROOT_NAME="suse-12.3-x86_64 chrootbuild" '''
-                    }
-                    post {
-                        success {
-                            sh label: "Collect artifacts",
-                               script: '''(cd /var/lib/mock/sles-12.3-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/sles12.3/)
-                                          createrepo artifacts/sles12.3/'''
-                        }
-                        unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/sles-12.3-x86_64
-                                          ls -l $mockroot/result/
-                                          cat $mockroot/result/{root,build}.log
-                                          artdir=$PWD/artifacts/sles12.3
+                               script: '''mockroot=/var/lib/mock/epel-7-x86_64
+                                          artdir=$PWD/libfabric/artifacts/centos7
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
                                            cp -r . $artdir)
                                           (if cd $mockroot/root/builddir/build/BUILD/*/; then
-                               find . -name configure -printf %h\\\\n | \
-                               while read dir; do
-                                   if [ ! -f $dir/config.log ]; then
-                                       continue
-                                   fi
-                                   tdir="$artdir/autoconf-logs/$dir"
-                                   mkdir -p $tdir
-                                   cp -a $dir/config.log $tdir/
-                                   done
-                               fi)'''
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/sles12.3/**'
-                        }
-                    }
-                } //stage('Build on SLES 12.3')
-                stage('Build on Leap 42.3') {
-                    when {
-                        beforeAgent true
-                        expression { false }
-                    }
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.mockbuild'
-                            label 'docker_runner'
-                            args  '--group-add mock' +
-                                  ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL
-                        }
-                    }
-                    steps {
-                        sh label: "Build package",
-                        script: '''rm -rf artifacts/leap42.3/
-                              mkdir -p artifacts/leap42.3/
-                              make CHROOT_NAME="opensuse-leap-42.3-x86_64" chrootbuild'''
-                    }
-                    post {
-                        success {
-                            sh label: "Collect artifacts",
-                               script: '''(cd /var/lib/mock/opensuse-leap-42.3-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/leap42.3/)
-                                          createrepo artifacts/leap42.3/'''
-                        }
-                        unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/opensuse-leap-42.3-x86_64
-                                          ls -l $mockroot/result/
-                                          cat $mockroot/result/{root,build}.log
-                                          artdir=$PWD/artifacts/leap42.3
-                                          cp -af _topdir/SRPMS $artdir
-                                          (cd $mockroot/result/ &&
-                                           cp -r . $artdir)
-                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
-                                               find . -name configure -printf %h\\\\n | \
-                                               while read dir; do
-                                                   if [ ! -f $dir/config.log ]; then
-                                                       continue
-                                                   fi
-                                                   tdir="$artdir/autoconf-logs/$dir"
-                                                   mkdir -p $tdir
-                                                   cp -a $dir/config.log $tdir/
-                                               done
+                                           find . -name configure -printf %h\\\\n | \
+                                           while read dir; do
+                                               if [ ! -f $dir/config.log ]; then
+                                                   continue
+                                               fi
+                                               tdir="$artdir/autoconf-logs/$dir"
+                                               mkdir -p $tdir
+                                               cp -a $dir/config.log $tdir/
+                                           done
                                            fi)'''
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/leap42.3/**'
+                            archiveArtifacts artifacts: 'libfabric/artifacts/centos7/**'
                         }
                     }
-                } //stage('Build on Leap 42.3')
-                stage('Build on Leap 15') {
+                } //stage('Build libfabric on CentOS 7')
+                stage('Build libfabric on Leap 15') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -252,46 +114,39 @@ pipeline {
                         }
                     }
                     steps {
-                        sh label: "Build package",
-                           script: '''rm -rf artifacts/leap15/
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric"
+                        sh label: env.STAGE_NAME,
+                           script: '''rm -rf libfabric/packaging/
+                                      mkdir libfabric/packaging/
+                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
+                                      cd libfabric/
+                                      rm -rf artifacts/leap15/
                                       mkdir -p artifacts/leap15/
-                                      make CHROOT_NAME="opensuse-leap-15.1-x86_64" chrootbuild'''
+                                      make chrootbuild'''
                     }
                     post {
-                        success {
-                            sh label: "Collect artifacts",
-                               script: '''(cd /var/lib/mock/opensuse-leap-15.1-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/leap15/)
-                                          createrepo artifacts/leap15/'''
-                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.1-x86_64
-                                          ls -l $mockroot/result/
-                                          cat $mockroot/result/{root,build}.log
+                               script: '''mockbase=/var/tmp/build-root/home/abuild
+                                          mockroot=$mockbase/rpmbuild
                                           artdir=$PWD/artifacts/leap15
-                                          cp -af _topdir/SRPMS $artdir
-                                          (cd $mockroot/result/ &&
-                                           cp -r . $artdir)
-                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
-                                               find . -name configure -printf %h\\\\n | \
-                                               while read dir; do
-                                                   if [ ! -f $dir/config.log ]; then
-                                                       continue
-                                                   fi
-                                                   tdir="$artdir/autoconf-logs/$dir"
-                                                   mkdir -p $tdir
-                                                   cp -a $dir/config.log $tdir/
+                                          (if cd $mockroot/BUILD; then
+                                           find . -name configure -printf %h\\\\n | \
+                                           while read dir; do
+                                               if [ ! -f $dir/config.log ]; then
+                                                   continue
+                                               fi
+                                               tdir="$artdir/autoconf-logs/$dir"
+                                               mkdir -p $tdir
+                                               cp -a $dir/config.log $tdir/
                                                done
                                            fi)'''
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/leap15/**'
+                            archiveArtifacts artifacts: 'libfabric/artifacts/leap15/**'
                         }
                     }
-                } //stage('Build on Leap 15')
-                // Ubuntu packaging builds currently require a repository
-                stage('Build on Ubuntu 18.04') {
+                } //stage('Build libfabric on Leap 15')
+                stage('Build libfabric on Ubuntu 18.04') {
                     when {
                         beforeAgent true
                         allOf {
@@ -311,13 +166,20 @@ pipeline {
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/ubuntu18.04/
-                              mkdir -p artifacts/ubuntu18.04/
-                              : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
-                              : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
-                              export DEBEMAIL
-                              export DEBFULLNAME
-                              make chrootbuild'''
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric"
+                        sh label: env.STAGE_NAME,
+                           script: '''rm -rf libfabric/packaging/
+                                      mkdir libfabric/packaging/
+                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
+                                      cd libfabric/
+                                      rm -rf artifacts/ubuntu18.04/
+                                      mkdir -p artifacts/ubuntu18.04/
+                                      : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
+                                      : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
+                                      export DEBEMAIL
+                                      export DEBFULLNAME
+                                      make chrootbuild'''
                     }
                     post {
                         success {
@@ -330,12 +192,9 @@ pipeline {
                                   popd'''
                         }
                         unsuccessful {
-                            sh script: "cat /var/cache/pbuilder/result/*.buildinfo",
+                            sh label: "Collect artifacts",
+                               script: "cat /var/cache/pbuilder/result/*.buildinfo",
                                returnStatus: true
-                            
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/ubuntu18.04/**'
                         }
                     }
                 } //stage('Build on Ubuntu 18.04')
@@ -360,14 +219,21 @@ pipeline {
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/ubuntu_rolling/
-                              mkdir -p artifacts/ubuntu_rolling/
-                              mkdir -p _topdir
-                              : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
-                              : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
-                              export DEBEMAIL
-                              export DEBFULLNAME
-                              make chrootbuild'''
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric"
+                        sh label: env.STAGE_NAME,
+                           script: '''rm -rf libfabric/packaging/
+                                      mkdir libfabric/packaging/
+                                      cp Dockerfile* Makefile_packaging.mk libfabric/packaging/
+                                      cd libfabric/
+                                      rm -rf artifacts/ubuntu18.10/
+                                      mkdir -p artifacts/ubuntu18.10/
+                                      mkdir -p _topdir
+                                      : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
+                                      : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
+                                      export DEBEMAIL
+                                      export DEBFULLNAME
+                                      make chrootbuild'''
                     }
                     post {
                         success {
@@ -380,7 +246,8 @@ pipeline {
                                   popd'''
                         }
                         unsuccessful {
-                            sh script: "cat /var/cache/pbuilder/result/*.buildinfo",
+                            sh label: "Collect artifacts",
+                               script: "cat /var/cache/pbuilder/result/*.buildinfo",
                                returnStatus: true
                         }
                         cleanup {

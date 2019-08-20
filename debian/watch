@@ -1,2 +1,0 @@
-version=3
-https://github.com/ofiwg/libfabric/releases .*/libfabric-(\d\S*)\.tar\.(?:gz|bz2|xz)
