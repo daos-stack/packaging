@@ -1,0 +1,54 @@
+This package is maintained from the upstream git repository located at
+https://github.com/ofiwg/libfabric.git
+using Dep14 (http://dep.debian.net/deps/dep14/) layout/workflow.
+
+New versions should usually be built from the debian/master branch.
+There is a d/gbp.conf, so building with 'gbp buildpackage' is supported.
+The upstream branch is master (there are old upstream branches called upstream
+and upstream-branch that were used for intermediate package versions but are now
+obsolete).
+
+Patches are managed within the patch-queue/debian/master branch. This branch
+should always be based on the (upstream) master branch. The contents of the
+d/patches directory is then auto-generated using:
+$ gbp pq export
+
+To clone this repo use:
+$ gbp clone --pristine-tar git@salsa.debian.org:hpc-team/libfabric.git
+
+To build the package after cloning:
+$ gbp buildpackage
+
+To be able to receive new upstream releases/commits, after cloning, you need to
+add the upstream repo address as a 'git remote' as follows:
+$ git remote add upstream https://github.com/ofiwg/libfabric.git
+Then you can pull upstream changes as follows:
+$ git branch master
+$ git pull upstream
+
+Handling new upstream releases (e.g. for new release 1.5.3):
+- Set an upstream tag 'alias' (original upstream tag would be v1.5.3):
+  $ git tag upstream/1.5.3 v1.5.3
+- Rebase patch-queue branch
+  $ git checkout patch-queue/debian/master
+  $ git rebase -i upstream/1.5.3
+    Review patches, possibly fix conflicts, when done:
+  $ gbp pq export
+  This puts you into the debian/master branch automatically. Review the changes
+  and commit.
+- Merge new upstream release to the debian/master branch:
+  $ git checkout debian/master (probably you're already there)
+  $ git merge upstream/1.5.3
+- Adjust debian files for new release ...
+- Set debian release tag when done (assuming debian version 1.5.3-1)
+  $ git tag debian/1.5.3-1
+- Build new package including new pristine-tar generation:
+  $ gbp buildpackage --git-pristine-tar --git-pristine-tar-commit \
+    --git-compression=xz
+- When all is fine, push the new version
+  $ git push --all
+  $ git push --tags
+
+Roland Fehrenbacher
+
+ -- Roland Fehrenbacher <rf@q-leap.de>, Wed, 27 Dec 2017 17:44:26 +0000
