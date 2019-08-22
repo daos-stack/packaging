@@ -30,3 +30,5 @@ RUN usermod -a -G mock $USER
 # mock in Docker needs to use the old-chroot option
 RUN grep use_nspawn || \
     echo "config_opts['use_nspawn'] = False" >> /etc/mock/site-defaults.cfg
+
+RUN chmod g+w /etc/mock/default.cfg

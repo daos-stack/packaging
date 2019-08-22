@@ -23,6 +23,8 @@ ID_LIKE := suse
 DISTRO_ID := sle$(VERSION_ID)
 endif
 
+BUILD_OS ?= leap.42.3
+PACKAGING_CHECK_DIR ?= ../packaging
 COMMON_RPM_ARGS := --define "%_topdir $$PWD/_topdir"
 DIST    := $(shell rpm $(COMMON_RPM_ARGS) --eval %{?dist})
 ifeq ($(DIST),)
@@ -210,21 +212,92 @@ debs: $(DEBS)
 ls: $(TARGETS)
 	ls -ld $^
 
-ifneq ($(ID_LIKE),suse)
+ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) Makefile
-
+	if [ -w /etc/mock/default.cfg ]; then                                    \
+	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
+	    for repo in $(ADD_REPOS); do                                             \
+	        if [[ $$repo = *@* ]]; then                                          \
+	            branch="$${repo#*@}";                                            \
+	            repo="$${repo%@*}";                                              \
+	        else                                                                 \
+	            branch="master";                                                 \
+	        fi;                                                                  \
+	        echo -e "[$$repo:$$branch:lastSuccessful]\n\
+name=$$repo:$$branch:lastSuccessful\n\
+baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
+enabled=1\n\
+gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
+	    done;                                                                    \
+	    echo "\"\"\"" >> /etc/mock/default.cfg;                                  \
+	else                                                                         \
+	    echo "Unable to update /etc/mock/default.cfg.";                          \
+            echo "You need to make sure it has the needed repos in it yourself.";    \
+	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
-ADD_REPOS := $(shell if [ -e /tmp/build.repos ]; then cat /tmp/build.repos; fi)
-chrootbuild: Makefile $(SOURCES)
-	zypper lr --details
-	sudo zypper --non-interactive --no-gpg-checks refresh
-	sudo build $(BUILD_OPTIONS) $(ADD_REPOS) --repo zypp:// \
-	  --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS)
+sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
+	       --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
+	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                          \
+	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
+	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                      \
+	       --repo http://cobbler/cobbler/pub/SLES-12.3-x86_64/
+
+sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
+	      --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
+	      --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
+
+sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
+	      --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
+
+chrootbuild: $(SRPM) Makefile
+	add_repos="";                                                       \
+	for repo in $(ADD_REPOS); do                                        \
+	    if [[ $$repo = *@* ]]; then                                     \
+	        branch="$${repo#*@}";                                       \
+	        repo="$${repo%@*}";                                         \
+	    else                                                            \
+	        branch="master";                                            \
+	    fi;                                                             \
+	    case $(DISTRO_ID) in                                            \
+	        sle12.3) distro="sles12.3";                                 \
+	        ;;                                                          \
+	        sl42.3) distro="leap42.3";                                  \
+	        ;;                                                          \
+	        sl15.1) distro="leap15.1";                                  \
+	        ;;                                                          \
+	    esac;                                                           \
+	    baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/; \
+	    baseurl+=lastSuccessfulBuild/artifact/artifacts/$$distro/;      \
+            add_repos+=" --repo $$baseurl";                                 \
+        done;                                                               \
+	curl -O http://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/repodata/repomd.xml.key; \
+	sudo rpm --import repomd.xml.key;                                   \
+	sudo build $(BUILD_OPTIONS) $$add_repos                             \
+	     $($(basename $(DISTRO_ID))_REPOS)                              \
+	     --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
 endif
+
+docker_chrootbuild:
+	docker build --build-arg UID=$$(id -u) -t $(BUILD_OS)-chrootbuild \
+	             -f packaging/Dockerfile.$(BUILD_OS) .
+	docker run --privileged=true -w $$PWD -v=$$PWD:$$PWD              \
+	           -it $(BUILD_OS)-chrootbuild bash -c "make chrootbuild"
 
 rpmlint: $(SPEC)
 	rpmlint $<
+
+packaging_check:
+	diff --exclude \*.sw?                       \
+	     --exclude debian                       \
+	     --exclude .git                         \
+	     --exclude Jenkinsfile                  \
+	     --exclude libfabric.spec               \
+	     --exclude Makefile                     \
+	     --exclude README.md                    \
+	     --exclude _topdir                      \
+	     --exclude \*.tar.\*                    \
+	     -bur $(PACKAGING_CHECK_DIR)/ packaging/
 
 check-env:
 ifndef DEBEMAIL
