@@ -8,6 +8,8 @@ ifeq ($(DEB_NAME),)
 DEB_NAME := $(NAME)
 endif
 
+CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
+
 # Find out what we are
 ID_LIKE := $(shell . /etc/os-release; echo $$ID_LIKE)
 # Of course that does not work for SLES-12
@@ -47,7 +49,6 @@ DEB_TARBASE := $(DEB_TOP)/$(DEB_NAME)_$(DEB_VERS)
 SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 ifeq ($(ID_LIKE),debian)
 DEBS    := $(addsuffix _$(DEB_VERS)-1_amd64.deb,$(shell sed -n '/-udeb/b; s,^Package:[[:blank:]],$(DEB_TOP)/,p' debian/control))
-CLEAN_TARBALS := $(shell rm -f *.tar.$(SRC_EXT))
 #Ubuntu Containers do not set a UTF-8 environment by default.
 ifndef LANG
 export LANG = C.UTF-8
@@ -71,6 +72,10 @@ all: $(TARGETS)
 %/:
 	mkdir -p $@
 
+%.gz: %
+	rm -f $@
+	gzip $<
+
 _topdir/SOURCES/%: % | _topdir/SOURCES/
 	rm -f $@
 	ln $< $@
@@ -81,19 +86,19 @@ ifeq ($(DL_VERSION),)
 DL_VERSION = $(VERSION)
 endif
 
-$(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(NAME).spec Makefile
+$(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(NAME).spec $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}.asc
 	curl -f -L -O '$(SOURCE).asc'
 
-$(NAME)-$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec Makefile
+$(NAME)-$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
-v$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec Makefile
+v$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
 	rm -f ./v*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
-$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec Makefile
+$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
 	rm -f ./*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
@@ -201,11 +206,11 @@ $(SRPM): $(SPEC) $(SOURCES)
 
 srpm: $(SRPM)
 
-$(RPMS): $(SRPM) Makefile
+$(RPMS): $(SRPM) $(CALLING_MAKEFILE)
 
 rpms: $(RPMS)
 
-$(DEBS): Makefile
+$(DEBS): $(CALLING_MAKEFILE)
 
 debs: $(DEBS)
 
@@ -213,7 +218,7 @@ ls: $(TARGETS)
 	ls -ld $^
 
 ifeq ($(ID_LIKE),rhel fedora)
-chrootbuild: $(SRPM) Makefile
+chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                    \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
 	    for repo in $(ADD_REPOS); do                                             \
@@ -250,7 +255,7 @@ sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/ope
 sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
 	      --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
 
-chrootbuild: $(SRPM) Makefile
+chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
 	for repo in $(ADD_REPOS); do                                        \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -324,6 +329,12 @@ show_sources:
 
 show_targets:
 	@echo $(TARGETS)
+
+show_makefiles:
+	@echo $(MAKEFILE_LIST)
+
+show_calling_makefile:
+	@echo $(CALLING_MAKEFILE)
 
 .PHONY: srpm rpms debs ls chrootbuild rpmlint FORCE \
         show_version show_release show_rpms show_source show_sources \
