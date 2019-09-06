@@ -10,6 +10,7 @@ endif
 
 CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
 
+RPM_BUILD_OPTIONS += $(EXTERNAL_RPM_BUILD_OPTIONS)
 # Find out what we are
 ID_LIKE := $(shell . /etc/os-release; echo $$ID_LIKE)
 # Of course that does not work for SLES-12
@@ -67,6 +68,7 @@ export LC_ALL = en_US.utf8
 endif
 TARGETS := $(RPMS) $(SRPM)
 endif
+
 all: $(TARGETS)
 
 %/:
