@@ -88,19 +88,19 @@ ifeq ($(DL_VERSION),)
 DL_VERSION = $(VERSION)
 endif
 
-$(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(NAME).spec $(CALLING_MAKEFILE)
+$(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}.asc
 	curl -f -L -O '$(SOURCE).asc'
 
-$(NAME)-$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
+$(NAME)-$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
-v$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
+v$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./v*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
-$(DL_VERSION).tar.$(SRC_EXT): $(NAME).spec $(CALLING_MAKEFILE)
+$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
 
@@ -236,6 +236,14 @@ baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/lastSuccessfulBuil
 enabled=1\n\
 gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
 	    done;                                                                    \
+	    for repo in $(el7_REPOS); do                                             \
+	        repo_name=$${repo##*://};                                            \
+	        repo_name=$${repo_name//\//_};                                       \
+	        echo -e "[$$repo_name]\n\
+name=$${repo_name}\n\
+baseurl=$${repo}\n\
+enabled=1\n" >> /etc/mock/default.cfg;                                               \
+	    done;                                                                    \
 	    echo "\"\"\"" >> /etc/mock/default.cfg;                                  \
 	else                                                                         \
 	    echo "Unable to update /etc/mock/default.cfg.";                          \
@@ -243,15 +251,13 @@ gpgcheck = False\n" >> /etc/mock/default.cfg;                                   
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else
-sle12_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/     \
-	       --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
+sle12_REPOS += --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
 	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                          \
 	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
 	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                      \
 	       --repo http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-sl42_REPOS += --repo https://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3 \
-	      --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
+sl42_REPOS += --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
 	      --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
 
 sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
