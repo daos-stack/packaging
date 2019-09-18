@@ -50,6 +50,7 @@ DEB_TARBASE := $(DEB_TOP)/$(DEB_NAME)_$(DEB_VERS)
 SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 ifeq ($(ID_LIKE),debian)
 DEBS    := $(addsuffix _$(DEB_VERS)-1_amd64.deb,$(shell sed -n '/-udeb/b; s,^Package:[[:blank:]],$(DEB_TOP)/,p' debian/control))
+DEB_DSC := $(DEB_NAME)_$(shell dpkg-parsechangelog -S version).dsc
 #Ubuntu Containers do not set a UTF-8 environment by default.
 ifndef LANG
 export LANG = C.UTF-8
@@ -203,6 +204,14 @@ $(subst deb,%,$(DEBS)): $(DEB_BUILD).tar.$(SRC_EXT) \
 	for f in $(DEB_TOP)/*.deb; do \
 	  echo $$f; dpkg -c $$f; done
 
+$(DEB_TOP)/$(DEB_DSC): $(CALLING_MAKEFILE) $(DEB_BUILD).tar.$(SRC_EXT) \
+          $(DEB_TOP)/.deb_files $(DEB_TOP)/.detar $(DEB_TOP)/.patched
+	rm -f $(DEB_TOP)/*.deb $(DEB_TOP)/*.ddeb $(DEB_TOP)/*.dsc \
+	  $(DEB_TOP)/*.dsc $(DEB_TOP)/*.build* $(DEB_TOP)/*.changes \
+	  $(DEB_TOP)/*.debian.tar.*
+	rm -rf $(DEB_TOP)/*-tmp
+	cd $(DEB_BUILD); dpkg-buildpackage -S --no-sign --no-check-builddeps
+
 $(SRPM): $(SPEC) $(SOURCES)
 	rpmbuild -bs $(COMMON_RPM_ARGS) $(RPM_BUILD_OPTIONS) $(SPEC)
 
@@ -250,6 +259,18 @@ enabled=1\n" >> /etc/mock/default.cfg;                                          
             echo "You need to make sure it has the needed repos in it yourself.";    \
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
+else ifeq ($(ID_LIKE),debian)
+ifneq ($(ubuntu1804_REPOS),"")
+UBUNTU_ADD_REPOS = --othermirror "$(ubuntu1804_REPOS)"
+endif
+chrootbuild: $(DEB_TOP)/$(DEB_DSC)
+	sudo pbuilder create --extrapackages "gnupg ca-certificates"
+ifneq ($(ubuntu1804_KEY),"")
+	printf "apt-key add - <<EOF\n$$(cat $(ubuntu1804_KEY))\nEOF" \
+	       | sudo pbuilder --login --save-after-login
+endif
+	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
+	cd $(DEB_TOP); sudo pbuilder --build $(DEB_DSC)
 else
 sle12_REPOS += --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
 	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                          \

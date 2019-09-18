@@ -260,16 +260,29 @@ pipeline {
                         }
                     }
                 } //stage('Build on Leap 15')
+                // Ubuntu packaging builds currently require a repository
                 stage('Build on Ubuntu 18.04') {
+                    when {
+                        beforeAgent true
+                        allOf {
+                            expression { env.DAOS_STACK_REPO_PUB_KEY != null }
+                            expression { env.DAOS_STACK_REPO_SUPPORT != null }
+                            expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
+                        }
+                    }
                     agent {
                         dockerfile {
                             filename 'Dockerfile.ubuntu.18.04'
                             label 'docker_runner'
+                            args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL +
-                                                ' --build-arg CACHEBUST=' +
-                                                currentBuild.startTimeInMillis
+                                                ' --build-arg DAOS_PUB_KEY=' +
+                                                env.DAOS_STACK_REPO_PUB_KEY +
+                                                ' --build-arg DAOS_REPO_SUP=' +
+                                                env.DAOS_STACK_REPO_SUPPORT +
+                                                ' --build-arg DAOS_REPO=' +
+                                                env.DAOS_STACK_REPO_UBUNTU_18_04_LIST
+
                         }
                     }
                     steps {
@@ -279,12 +292,12 @@ pipeline {
                               : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
                               export DEBEMAIL
                               export DEBFULLNAME
-                              make debs'''
+                              make chrootbuild'''
                     }
                     post {
                         success {
-                            sh '''ln -v \
-                                   _topdir/BUILD/*{.build,.changes,.deb,.dsc,.gz,.xz} \
+                            sh '''cp -v \
+                                   /var/cache/pbuilder/result/*{.buildinfo,.changes,.deb,.dsc,.gz,.xz} \
                                    artifacts/ubuntu18.04/
                                   pushd artifacts/ubuntu18.04/
                                     dpkg-scanpackages . /dev/null | \
@@ -292,7 +305,7 @@ pipeline {
                                   popd'''
                         }
                         unsuccessful {
-                            sh script: "cat _topdir/BUILD/*.build",
+                            sh script: "cat /var/cache/pbuilder/result/*.buildinfo",
                                returnStatus: true
                             
                         }
@@ -301,47 +314,59 @@ pipeline {
                         }
                     }
                 } //stage('Build on Ubuntu 18.04')
-                stage('Build on Ubuntu 18.10') {
+                stage('Build on Ubuntu rolling') {
+                    // Rolling is current Ubuntu release
+                    when {
+                        beforeAgent true
+                        allOf {
+                            expression { env.DAOS_STACK_REPO_PUB_KEY != null }
+                            expression { env.DAOS_STACK_REPO_SUPPORT != null }
+                            expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
+                        }
+                    }
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.ubuntu.18.10'
+                            filename 'Dockerfile.ubuntu.rolling'
                             label 'docker_runner'
+                            args '--privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL +
-                                                ' --build-arg CACHEBUST=' +
-                                                currentBuild.startTimeInMillis
+                                                ' --build-arg DAOS_PUB_KEY=' +
+                                                env.DAOS_STACK_REPO_PUB_KEY +
+                                                ' --build-arg DAOS_REPO_SUP=' +
+                                                env.DAOS_STACK_REPO_SUPPORT +
+                                                ' --build-arg DAOS_REPO=' +
+                                                env.DAOS_STACK_REPO_UBUNTU_18_04_LIST
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/ubuntu18.10/
-                              mkdir -p artifacts/ubuntu18.10/
+                        sh '''rm -rf artifacts/ubuntu_rolling/
+                              mkdir -p artifacts/ubuntu_rolling/
                               mkdir -p _topdir
                               : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
                               : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
                               export DEBEMAIL
                               export DEBFULLNAME
-                              make debs'''
+                              make chrootbuild'''
                     }
                     post {
                         success {
-                            sh '''ln -v \
-                                   _topdir/BUILD/*{.build,.changes,.deb,.dsc,.gz,.xz} \
-                                   artifacts/ubuntu18.10/
-                                  pushd artifacts/ubuntu18.10/
+                            sh '''cp -v \
+                                   /var/cache/pbuilder/result/*{.buildinfo,.changes,.deb,.dsc,.gz,.xz} \
+                                   artifacts/ubuntu_rolling/
+                                  pushd artifacts/ubuntu_rolling/
                                     dpkg-scanpackages . /dev/null | \
                                       gzip -9c > Packages.gz
                                   popd'''
                         }
                         unsuccessful {
-                            sh script: "cat _topdir/BUILD/*.build",
+                            sh script: "cat /var/cache/pbuilder/result/*.buildinfo",
                                returnStatus: true
                         }
                         cleanup {
-                            archiveArtifacts artifacts: 'artifacts/ubuntu18.10/**'
+                            archiveArtifacts artifacts: 'artifacts/ubuntu_rolling/**'
                         }
                     }
-                } //stage('Build on Ubuntu 18.10') 
+                } //stage('Build on Ubuntu rolling') 
             }
         } //stage('Build')
     } // stages

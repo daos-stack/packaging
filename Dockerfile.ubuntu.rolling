@@ -4,7 +4,9 @@
 # 'recipe' for Docker to build an Debian package
 #
 # Pull base image
-FROM ubuntu:18.04
+# FROM ubuntu:rolling
+# Currently rolling is Ubuntu 19.04 and pbuilder does not work.
+FROM ubuntu:18.10
 Maintainer daos-stack <daos@daos.groups.io>
 
 # use same UID as host and default value of 1000 if not specified
@@ -40,5 +42,4 @@ RUN if [ -n "${DAOS_PUB_KEY}" ]; then \
     if [ -n "${DAOS_REPO}" ]; then \
        wget "${DAOS_REPO_SUP}/${DAOS_REPO}"; \
        mv "${DAOS_REPO}" /etc/apt/sources.list.d; \
-    fi; \
-    apt-get update
+    fi
