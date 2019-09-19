@@ -260,13 +260,25 @@ enabled=1\n" >> /etc/mock/default.cfg;                                          
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else ifeq ($(ID_LIKE),debian)
-ifneq ($(ubuntu1804_REPOS),"")
+ifneq ($(DAOS_STACK_REPO_SUPPORT),"")
+ifneq ($(DAOS_STACK_REPO_UBUNTU_18_04_LIST),"")
+ubuntu1804_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_UBUNTU_18_04_LIST))
+# Additional repos can be added but must be separated by a | character.
 UBUNTU_ADD_REPOS = --othermirror "$(ubuntu1804_REPOS)"
 endif
-chrootbuild: $(DEB_TOP)/$(DEB_DSC)
+# Need to figure out how to support multiple keys, such as for IPMCTL
+ifneq ($(DAOS_STACK_REPO_PUB_KEY),"")
+
+$(DAOS_STACK_REPO_PUB_KEY):
+	curl -f -L -O '$(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_PUB_KEY)'
+
+endif
+endif
+
+chrootbuild: $(DEB_TOP)/$(DEB_DSC) $(DAOS_STACK_REPO_PUB_KEY)
 	sudo pbuilder create --extrapackages "gnupg ca-certificates"
 ifneq ($(ubuntu1804_KEY),"")
-	printf "apt-key add - <<EOF\n$$(cat $(ubuntu1804_KEY))\nEOF" \
+	printf "apt-key add - <<EOF\n$$(cat $(DAOS_STACK_REPO_PUB_KEY))\nEOF" \
 	       | sudo pbuilder --login --save-after-login
 endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)

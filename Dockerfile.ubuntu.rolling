@@ -29,17 +29,3 @@ RUN if ! grep "^#includedir /etc/sudoers.d" /etc/sudoers; then              \
    chmod 0440 /etc/sudoers.d/build;                                        \
    visudo -c;                                                              \
    sudo -l -U build
-
-ARG DAOS_PUB_KEY=""
-ARG DAOS_REPO=""
-ARG DAOS_REPO_SUP=""
-RUN if [ -n "${DAOS_PUB_KEY}" ]; then \
-       wget "${DAOS_REPO_SUP}/${DAOS_PUB_KEY}"; \
-       apt-key add "${DAOS_PUB_KEY}"; \
-       cp "${DAOS_PUB_KEY}" "/tmp/${DAOS_PUB_KEY}"; \
-       chmod 744 "/tmp/${DAOS_PUB_KEY}"; \
-    fi; \
-    if [ -n "${DAOS_REPO}" ]; then \
-       wget "${DAOS_REPO_SUP}/${DAOS_REPO}"; \
-       mv "${DAOS_REPO}" /etc/apt/sources.list.d; \
-    fi

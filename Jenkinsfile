@@ -275,14 +275,7 @@ pipeline {
                             filename 'Dockerfile.ubuntu.18.04'
                             label 'docker_runner'
                             args '--privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg DAOS_PUB_KEY=' +
-                                                env.DAOS_STACK_REPO_PUB_KEY +
-                                                ' --build-arg DAOS_REPO_SUP=' +
-                                                env.DAOS_STACK_REPO_SUPPORT +
-                                                ' --build-arg DAOS_REPO=' +
-                                                env.DAOS_STACK_REPO_UBUNTU_18_04_LIST
-
+                            additionalBuildArgs '--build-arg UID=$(id -u)'
                         }
                     }
                     steps {
@@ -329,13 +322,7 @@ pipeline {
                             filename 'Dockerfile.ubuntu.rolling'
                             label 'docker_runner'
                             args '--privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg DAOS_PUB_KEY=' +
-                                                env.DAOS_STACK_REPO_PUB_KEY +
-                                                ' --build-arg DAOS_REPO_SUP=' +
-                                                env.DAOS_STACK_REPO_SUPPORT +
-                                                ' --build-arg DAOS_REPO=' +
-                                                env.DAOS_STACK_REPO_UBUNTU_18_04_LIST
+                            additionalBuildArgs '--build-arg UID=$(id -u)'
                         }
                     }
                     steps {
