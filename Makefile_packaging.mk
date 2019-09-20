@@ -10,12 +10,21 @@ endif
 
 CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
 
+DOT     := .
 RPM_BUILD_OPTIONS += $(EXTERNAL_RPM_BUILD_OPTIONS)
 # Find out what we are
 ID_LIKE := $(shell . /etc/os-release; echo $$ID_LIKE)
 # Of course that does not work for SLES-12
 ID := $(shell . /etc/os-release; echo $$ID)
 VERSION_ID := $(shell . /etc/os-release; echo $$VERSION_ID)
+ifeq ($(ID_LIKE),debian)
+UBUNTU_VERS := $(shell . /etc/os-release; echo $$VERSION)
+ifeq ($(VERSION_ID),19.04)
+# Bug - distribution is set to "devel"
+DISTRO_ID = --distribution disco
+endif
+VERSION_ID_STR := $(subst $(DOT),_,$(VERSION_ID))
+endif
 ifeq ($(findstring opensuse,$(ID)),opensuse)
 ID_LIKE := suse
 DISTRO_ID := sl$(VERSION_ID)
@@ -37,7 +46,6 @@ SED_EXPR := 1s/$(DIST)//p
 endif
 SPEC    := $(NAME).spec
 VERSION := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{version}\n' $(SPEC) | sed -n '1p')
-DOT     := .
 DEB_VERS := $(subst rc,~rc,$(VERSION))
 DEB_RVERS := $(subst $(DOT),\$(DOT),$(DEB_VERS))
 DEB_BVERS := $(basename $(subst ~rc,$(DOT)rc,$(DEB_VERS)))
@@ -260,14 +268,22 @@ enabled=1\n" >> /etc/mock/default.cfg;                                          
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else ifeq ($(ID_LIKE),debian)
-ifneq ($(DAOS_STACK_REPO_SUPPORT),"")
-ifneq ($(DAOS_STACK_REPO_UBUNTU_18_04_LIST),"")
-ubuntu1804_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_UBUNTU_18_04_LIST))
+ifneq ($(DAOS_STACK_REPO_SUPPORT),)
+TEST_STR := $(DAOS_STACK_REPO_UBUNTU_$(VERSION_ID_STR)_LIST)
+ifneq ($(TEST_STR),)
+ubuntu_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(TEST_STR))
 # Additional repos can be added but must be separated by a | character.
-UBUNTU_ADD_REPOS = --othermirror "$(ubuntu1804_REPOS)"
+UBUNTU_ADD_REPOS = --othermirror "$(ubuntu_REPOS)"
+else
+ifneq ($(DAOS_STACK_REPO_UBUNTU_ROLLING_LIST),)
+ubuntu_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_UBUNTU_ROLLING_LIST))
+# Additional repos can be added but must be separated by a | character.
+UBUNTU_ADD_REPOS = --othermirror "$(ubuntu_REPOS)"
+endif
 endif
 # Need to figure out how to support multiple keys, such as for IPMCTL
-ifneq ($(DAOS_STACK_REPO_PUB_KEY),"")
+ifneq ($(DAOS_STACK_REPO_PUB_KEY),)
+HAVE_DAOS_STACK_KEY := TRUE
 
 $(DAOS_STACK_REPO_PUB_KEY):
 	curl -f -L -O '$(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_PUB_KEY)'
@@ -276,8 +292,8 @@ endif
 endif
 
 chrootbuild: $(DEB_TOP)/$(DEB_DSC) $(DAOS_STACK_REPO_PUB_KEY)
-	sudo pbuilder create --extrapackages "gnupg ca-certificates"
-ifneq ($(ubuntu1804_KEY),"")
+	sudo pbuilder create --extrapackages "gnupg ca-certificates" $(DISTRO_ID)
+ifneq ($(HAVE_DAOS_STACK_KEY),)
 	printf "apt-key add - <<EOF\n$$(cat $(DAOS_STACK_REPO_PUB_KEY))\nEOF" \
 	       | sudo pbuilder --login --save-after-login
 endif
