@@ -25,6 +25,17 @@ DISTRO_ID = --distribution disco
 endif
 VERSION_ID_STR := $(subst $(DOT),_,$(VERSION_ID))
 endif
+ifeq ($(ID),centos)
+DISTRO_ID := el$(VERSION_ID)
+define install_repo
+	if yum-config-manager --add-repo=$(1); then                  \
+	    repo_file=$$(ls -tar /etc/yum.repos.d/*.repo | tail -1); \
+	    sed -i -e 1d -e '$$s/^/gpgcheck=False/' $$repo_file;     \
+	else                                                         \
+	    exit 1;                                                  \
+	fi
+endef
+endif
 ifeq ($(findstring opensuse,$(ID)),opensuse)
 ID_LIKE := suse
 DISTRO_ID := sl$(VERSION_ID)
@@ -33,6 +44,11 @@ ifeq ($(ID),sles)
 # SLES-12 or 15 detected.
 ID_LIKE := suse
 DISTRO_ID := sle$(VERSION_ID)
+endif
+ifeq ($(ID_LIKE),suse)
+define install_repo
+	zypper --non-interactive ar $(1)
+endef
 endif
 
 BUILD_OS ?= leap.42.3
@@ -77,6 +93,35 @@ export LC_ALL = en_US.utf8
 endif
 TARGETS := $(RPMS) $(SRPM)
 endif
+
+define install_repos
+	for repo in $($(basename $(DISTRO_ID))_ADD_REPOS)                   \
+	            $(ADD_REPOS) $(1); do                                   \
+	    branch="master";                                                \
+	    build_number="lastSuccessfulBuild";                             \
+	    if [[ $$repo = *@* ]]; then                                     \
+	        branch="$${repo#*@}";                                       \
+	        repo="$${repo%@*}";                                         \
+	        if [[ $$branch = *:* ]]; then                               \
+	            build_number="$${branch#*:}";                           \
+	            branch="$${branch%:*}";                                 \
+	        fi;                                                         \
+	    fi;                                                             \
+	    case $(DISTRO_ID) in                                            \
+	        el7) distro="centos7";                                      \
+	        ;;                                                          \
+	        sle12.3) distro="sles12.3";                                 \
+	        ;;                                                          \
+	        sl42.3) distro="leap42.3";                                  \
+	        ;;                                                          \
+	        sl15.1) distro="leap15.1";                                  \
+	        ;;                                                          \
+	    esac;                                                           \
+	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
+	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
+	    $(call install_repo,$$baseurl);                                 \
+        done
+endef
 
 all: $(TARGETS)
 
@@ -238,18 +283,22 @@ ls: $(TARGETS)
 
 ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
-	if [ -w /etc/mock/default.cfg ]; then                                    \
+	if [ -w /etc/mock/default.cfg ]; then                                        \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
-	    for repo in $(ADD_REPOS); do                                             \
+	    for repo in $(el7_ADD_REPOS) $(ADD_REPOS); do                            \
+	        branch="master";                                                     \
+	        build_number="lastSuccessfulBuild";                                  \
 	        if [[ $$repo = *@* ]]; then                                          \
 	            branch="$${repo#*@}";                                            \
 	            repo="$${repo%@*}";                                              \
-	        else                                                                 \
-	            branch="master";                                                 \
+	            if [[ $$branch = *:* ]]; then                                    \
+	                build_number="$${branch#*:}";                                \
+	                branch="$${branch%:*}";                                      \
+	            fi;                                                              \
 	        fi;                                                                  \
-	        echo -e "[$$repo:$$branch:lastSuccessful]\n\
-name=$$repo:$$branch:lastSuccessful\n\
-baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/lastSuccessfulBuild/artifact/artifacts/centos7/\n\
+	        echo -e "[$$repo:$$branch:$$build_number]\n\
+name=$$repo:$$branch:$$build_number\n\
+baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/$$build_number/artifact/artifacts/centos7/\n\
 enabled=1\n\
 gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
 	    done;                                                                    \
@@ -314,12 +363,16 @@ sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/         
 
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
-	for repo in $(ADD_REPOS); do                                        \
+	for repo in $($(basename $(DISTRO_ID))_ADD_REPOS) $(ADD_REPOS); do  \
+	    branch="master";                                                \
+	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
 	        branch="$${repo#*@}";                                       \
 	        repo="$${repo%@*}";                                         \
-	    else                                                            \
-	        branch="master";                                            \
+	        if [[ $$branch = *:* ]]; then                               \
+	            build_number="$${branch#*:}";                           \
+	            branch="$${branch%:*}";                                 \
+	        fi;                                                         \
 	    fi;                                                             \
 	    case $(DISTRO_ID) in                                            \
 	        sle12.3) distro="sles12.3";                                 \
@@ -329,12 +382,17 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	        sl15.1) distro="leap15.1";                                  \
 	        ;;                                                          \
 	    esac;                                                           \
-	    baseurl=$${JENKINS_URL}job/daos-stack/job/$$repo/job/$$branch/; \
-	    baseurl+=lastSuccessfulBuild/artifact/artifacts/$$distro/;      \
+	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
+	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
             add_repos+=" --repo $$baseurl";                                 \
         done;                                                               \
-	curl -O http://download.opensuse.org/repositories/science:/HPC/openSUSE_Leap_42.3/repodata/repomd.xml.key; \
-	sudo rpm --import repomd.xml.key;                                   \
+	for repo in $($(basename $(DISTRO_ID))_REPOS); do                   \
+	    if [ "$$repo" = "--repo" ]; then                                \
+	        continue;                                                   \
+	    fi;                                                             \
+	    curl -O "$$repo"/repodata/repomd.xml.key;                       \
+	    sudo rpm --import repomd.xml.key;                               \
+	done;                                                               \
 	sudo build $(BUILD_OPTIONS) $$add_repos                             \
 	     $($(basename $(DISTRO_ID))_REPOS)                              \
 	     --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
@@ -368,6 +426,9 @@ endif
 ifndef DEBFULLNAME
 	$(error DEBFULLNAME is undefined)
 endif
+
+test:
+	@echo "No test defined for this module"
 
 show_version:
 	@echo $(VERSION)
