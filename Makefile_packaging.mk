@@ -4,16 +4,14 @@
 # SRC_EXT :=
 # SOURCE =
 
+# Put site overrides (i.e. REPOSITORY_URL, DAOS_STACK_*_LOCAL_REPO) in here
+-include Makefile.local
+
 # alternate sources
 #OPENSUSE_MIRROR               ?= http://provo-mirror.opensuse.org
 #OPENSUSE_REPOS_MIRROR         ?= http://opensuse.mirror.liquidtelecom.com
 OPENSUSE_MIRROR               ?= http://download.opensuse.org
 OPENSUSE_REPOS_MIRROR         ?= $(OPENSUSE_MIRROR)
-REPOSITORY_URL                ?= https://repo.dc.hpdd.intel.com
-DAOS_STACK_EL_7_LOCAL_REPO    ?= repository/daos-stack-el-7-x86_64-stable-local
-DAOS_STACK_SLES_12_LOCAL_REPO ?= repository/daos-stack-sles-12-x86_64-stable-local
-DAOS_STACK_LEAP_42_LOCAL_REPO ?= repository/daos-stack-leap-42-x86_64-stable-local
-DAOS_STACK_LEAP_15_LOCAL_REPO ?= repository/daos-stack-leap-15-x86_64-stable-local
 
 ifeq ($(DEB_NAME),)
 DEB_NAME := $(NAME)
@@ -292,8 +290,22 @@ debs: $(DEBS)
 ls: $(TARGETS)
 	ls -ld $^
 
+ifneq ($(REPOSITORY_URL),)
+ifneq ($(DAOS_STACK_EL_7_LOCAL_REPO),)
+el7_LOCAL_REPOS   := $(REPOSITORY_URL)/$(DAOS_STACK_EL_7_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_SLES_12_LOCAL_REPO),)
+sle12_LOCAL_REPOS := $(REPOSITORY_URL)/$(DAOS_STACK_SLES_12_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_42_LOCAL_REPO),)
+sl42_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_42_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_15_LOCAL_REPO),)
+sl15_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_15_LOCAL_REPO)/
+endif
+endif
+
 ifeq ($(ID_LIKE),rhel fedora)
-el7_REPOS += $(REPOSITORY_URL)/$(DAOS_STACK_EL_7_LOCAL_REPO)/
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                        \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
@@ -314,7 +326,7 @@ baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/
 enabled=1\n\
 gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
 	    done;                                                                    \
-	    for repo in $(el7_REPOS); do                                             \
+	    for repo in $(el7_LOCAL_REPOS) $(el7_REPOS); do                          \
 	        repo_name=$${repo##*://};                                            \
 	        repo_name=$${repo_name//\//_};                                       \
 	        echo -e "[$$repo_name]\n\
@@ -361,19 +373,16 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder --build $(DEB_DSC)
 else
-sle12_REPOS += $(REPOSITORY_URL)/$(DAOS_STACK_SLES_12_LOCAL_REPO)/                   \
-	       http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/         \
+sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/         \
 	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                \
 	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
 	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64            \
 	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-sl42_REPOS += $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_42_LOCAL_REPO)/      \
-	      $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                 \
+sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                 \
 	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-sl15_REPOS += $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_15_LOCAL_REPO)/ \
-	      $(OPENSUSE_MIRROR)/update/leap/15.1/oss/            \
+sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/            \
 	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
@@ -402,7 +411,8 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
             add_repos+=" --repo $$baseurl";                                 \
     done;                                                                   \
 	distro_repos="";                                                    \
-	for repo in $($(basename $(DISTRO_ID))_REPOS); do                   \
+	for repo in $($(basename $(DISTRO_ID))_LOCAL_REPOS)                 \
+	            $($(basename $(DISTRO_ID))_REPOS); do                   \
 		distro_repos+=" --repo $$repo";                             \
 	    curl -L -f -O "$$repo"/repodata/repomd.xml.key;                 \
 	    if ! sudo rpm --import repomd.xml.key; then                     \
