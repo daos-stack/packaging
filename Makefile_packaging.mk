@@ -4,6 +4,15 @@
 # SRC_EXT :=
 # SOURCE =
 
+# Put site overrides (i.e. REPOSITORY_URL, DAOS_STACK_*_LOCAL_REPO) in here
+-include Makefile.local
+
+# alternate sources
+#OPENSUSE_MIRROR               ?= https://provo-mirror.opensuse.org
+#OPENSUSE_REPOS_MIRROR         ?= https://opensuse.mirror.liquidtelecom.com
+OPENSUSE_MIRROR               ?= https://download.opensuse.org
+OPENSUSE_REPOS_MIRROR         ?= $(OPENSUSE_MIRROR)
+
 ifeq ($(DEB_NAME),)
 DEB_NAME := $(NAME)
 endif
@@ -95,8 +104,8 @@ TARGETS := $(RPMS) $(SRPM)
 endif
 
 define install_repos
-	for repo in $($(basename $(DISTRO_ID))_ADD_REPOS)                   \
-	            $(ADD_REPOS) $(1); do                                   \
+	for repo in $($(basename $(DISTRO_ID))_PR_REPOS)                    \
+	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -281,11 +290,26 @@ debs: $(DEBS)
 ls: $(TARGETS)
 	ls -ld $^
 
+ifneq ($(REPOSITORY_URL),)
+ifneq ($(DAOS_STACK_EL_7_LOCAL_REPO),)
+el7_LOCAL_REPOS   := $(REPOSITORY_URL)/$(DAOS_STACK_EL_7_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_SLES_12_LOCAL_REPO),)
+sle12_LOCAL_REPOS := $(REPOSITORY_URL)/$(DAOS_STACK_SLES_12_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_42_LOCAL_REPO),)
+sl42_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_42_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_15_LOCAL_REPO),)
+sl15_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_15_LOCAL_REPO)/
+endif
+endif
+
 ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                        \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
-	    for repo in $(el7_ADD_REPOS) $(ADD_REPOS); do                            \
+	    for repo in $(el7_PR_REPOS) $(PR_REPOS); do                              \
 	        branch="master";                                                     \
 	        build_number="lastSuccessfulBuild";                                  \
 	        if [[ $$repo = *@* ]]; then                                          \
@@ -302,7 +326,7 @@ baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/
 enabled=1\n\
 gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
 	    done;                                                                    \
-	    for repo in $(el7_REPOS); do                                             \
+	    for repo in $(el7_LOCAL_REPOS) $(el7_REPOS); do                          \
 	        repo_name=$${repo##*://};                                            \
 	        repo_name=$${repo_name//\//_};                                       \
 	        echo -e "[$$repo_name]\n\
@@ -349,21 +373,21 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder --build $(DEB_DSC)
 else
-sle12_REPOS += --repo http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/                   \
-	       --repo http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                          \
-	       --repo http://download.opensuse.org/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	       --repo http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64                      \
-	       --repo http://cobbler/cobbler/pub/SLES-12.3-x86_64/
+sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/         \
+	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                \
+	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
+	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64            \
+	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-sl42_REPOS += --repo http://download.opensuse.org/update/leap/42.3/oss/                         \
-	      --repo http://download.opensuse.org/distribution/leap/42.3/repo/oss/suse/
+sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                 \
+	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-sl15_REPOS += --repo http://download.opensuse.org/update/leap/15.1/oss/            \
-	      --repo http://download.opensuse.org/distribution/leap/15.1/repo/oss/
+sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/            \
+	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
-	for repo in $($(basename $(DISTRO_ID))_ADD_REPOS) $(ADD_REPOS); do  \
+	for repo in $($(basename $(DISTRO_ID))_PR_REPOS) $(PR_REPOS); do    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -379,22 +403,24 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	        ;;                                                          \
 	        sl42.3) distro="leap42.3";                                  \
 	        ;;                                                          \
-	        sl15.1) distro="leap15.1";                                  \
+	        sl15.1) distro="leap15";                                    \
 	        ;;                                                          \
 	    esac;                                                           \
 	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
 	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
             add_repos+=" --repo $$baseurl";                                 \
-        done;                                                               \
-	for repo in $($(basename $(DISTRO_ID))_REPOS); do                   \
-	    if [ "$$repo" = "--repo" ]; then                                \
-	        continue;                                                   \
+    done;                                                                   \
+	distro_repos="";                                                    \
+	for repo in $($(basename $(DISTRO_ID))_LOCAL_REPOS)                 \
+	            $($(basename $(DISTRO_ID))_REPOS); do                   \
+		distro_repos+=" --repo $$repo";                             \
+	    curl -L -f -O "$$repo"/repodata/repomd.xml.key;                 \
+	    if ! sudo rpm --import repomd.xml.key; then                     \
+	        cat repomd.xml.key;                                         \
 	    fi;                                                             \
-	    curl -O "$$repo"/repodata/repomd.xml.key;                       \
-	    sudo rpm --import repomd.xml.key;                               \
 	done;                                                               \
 	sudo build $(BUILD_OPTIONS) $$add_repos                             \
-	     $($(basename $(DISTRO_ID))_REPOS)                              \
+	     $$distro_repos                                                 \
 	     --dist $(DISTRO_ID) $(RPM_BUILD_OPTIONS) $(SRPM)
 endif
 
@@ -408,16 +434,22 @@ rpmlint: $(SPEC)
 	rpmlint $<
 
 packaging_check:
-	diff --exclude \*.sw?                       \
-	     --exclude debian                       \
-	     --exclude .git                         \
-	     --exclude Jenkinsfile                  \
-	     --exclude libfabric.spec               \
-	     --exclude Makefile                     \
-	     --exclude README.md                    \
-	     --exclude _topdir                      \
-	     --exclude \*.tar.\*                    \
-	     -bur $(PACKAGING_CHECK_DIR)/ packaging/
+	if ! diff --exclude \*.sw?                              \
+	          --exclude debian                              \
+	          --exclude .git                                \
+	          --exclude Jenkinsfile                         \
+	          --exclude libfabric.spec                      \
+	          --exclude Makefile                            \
+	          --exclude README.md                           \
+	          --exclude _topdir                             \
+	          --exclude \*.tar.\*                           \
+	          -bur $(PACKAGING_CHECK_DIR)/ packaging/; then \
+	    exit 1;                                             \
+	fi
+	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
+	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
+	    exit 2;                                                                    \
+	fi
 
 check-env:
 ifndef DEBEMAIL
