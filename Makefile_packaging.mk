@@ -8,9 +8,9 @@
 -include Makefile.local
 
 # alternate sources
-#OPENSUSE_MIRROR               ?= http://provo-mirror.opensuse.org
-#OPENSUSE_REPOS_MIRROR         ?= http://opensuse.mirror.liquidtelecom.com
-OPENSUSE_MIRROR               ?= http://download.opensuse.org
+#OPENSUSE_MIRROR               ?= https://provo-mirror.opensuse.org
+#OPENSUSE_REPOS_MIRROR         ?= https://opensuse.mirror.liquidtelecom.com
+OPENSUSE_MIRROR               ?= https://download.opensuse.org
 OPENSUSE_REPOS_MIRROR         ?= $(OPENSUSE_MIRROR)
 
 ifeq ($(DEB_NAME),)
