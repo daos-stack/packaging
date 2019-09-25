@@ -434,6 +434,10 @@ rpmlint: $(SPEC)
 	rpmlint $<
 
 packaging_check:
+	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
+	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
+	    exit 2;                                                                    \
+	fi
 	if ! diff --exclude \*.sw?                              \
 	          --exclude debian                              \
 	          --exclude .git                                \
@@ -443,12 +447,10 @@ packaging_check:
 	          --exclude README.md                           \
 	          --exclude _topdir                             \
 	          --exclude \*.tar.\*                           \
+	          --exclude \*.code-workspace                   \
+	          --exclude install                             \
 	          -bur $(PACKAGING_CHECK_DIR)/ packaging/; then \
 	    exit 1;                                             \
-	fi
-	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
-	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
-	    exit 2;                                                                    \
 	fi
 
 check-env:
