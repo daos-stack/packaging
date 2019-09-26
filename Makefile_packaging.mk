@@ -186,7 +186,8 @@ deb_detar: $(notdir $(SOURCE)) $(DEB_TARBASE).orig.tar.$(SRC_EXT)
 	tar -C $(DEB_BUILD) --strip-components=1 -xpf $<
 
 # Extract patches for Debian
-$(DEB_TOP)/.patched: $(PATCHES) check-env deb_detar $(DEB_BUILD)/debian/
+$(DEB_TOP)/.patched: $(PATCHES) check-env deb_detar | \
+	$(DEB_BUILD)/debian/
 	mkdir -p ${DEB_BUILD}/debian/patches
 	mkdir -p $(DEB_TOP)/patches
 	for f in $(PATCHES); do \
@@ -216,8 +217,7 @@ $(DEB_TOP)/.patched: $(PATCHES) check-env deb_detar $(DEB_BUILD)/debian/
 
 # Move the debian files into the Debian directory.
 ifeq ($(ID_LIKE),debian)
-$(DEB_TOP)/.deb_files : $(shell find debian -type f) \
-	  deb_detar | \
+$(DEB_TOP)/.deb_files : $(shell find debian -type f) deb_detar | \
 	  $(DEB_BUILD)/debian/
 	find debian -maxdepth 1 -type f -exec cp '{}' '$(DEB_BUILD)/{}' ';'
 	if [ -e debian/source ]; then \
@@ -289,18 +289,36 @@ debs: $(DEBS)
 ls: $(TARGETS)
 	ls -ld $^
 
+# *_LOCAL_* repos are locally built packages.
+# *_GROUP_* repos are a local mirror of a group of upstream repos.
+# *_GROUP_* repos may not supply a repomd.xml.key.
 ifneq ($(REPOSITORY_URL),)
 ifneq ($(DAOS_STACK_EL_7_LOCAL_REPO),)
-el7_LOCAL_REPOS   := $(REPOSITORY_URL)/$(DAOS_STACK_EL_7_LOCAL_REPO)/
+el7_LOCAL_REPOS   := $(REPOSITORY_URL)$(DAOS_STACK_EL_7_LOCAL_REPO)/
+endif
+SUSE_REPO_KEYS := $(OPENSUSE_MIRROR)repositories/home:/jhli/SLE_15/repodata/repomd.xml.key
+# Only needed for LEAP 42.3
+SUSE_REPO_KEYS += $(OPENSUSE_MIRROR)/repositories/science:/HPC/openSUSE_Leap_42.3/repodata/repomd.xml.key
+ifneq ($(DAOS_STACK_EL_7_GROUP_REPO),)
+el7_LOCAL_REPOS   += $(REPOSITORY_URL)$(DAOS_STACK_EL_7_GROUP_REPO)/
 endif
 ifneq ($(DAOS_STACK_SLES_12_LOCAL_REPO),)
-sle12_LOCAL_REPOS := $(REPOSITORY_URL)/$(DAOS_STACK_SLES_12_LOCAL_REPO)/
+sle12_LOCAL_REPOS := $(REPOSITORY_URL)$(DAOS_STACK_SLES_12_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_SLES_12_GROUP_REPO),)
+sle12_LOCAL_REPOS += $(REPOSITORY_URL)$(DAOS_STACK_SLES_12_GROUP_REPO)/
 endif
 ifneq ($(DAOS_STACK_LEAP_42_LOCAL_REPO),)
-sl42_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_42_LOCAL_REPO)/
+sl42_LOCAL_REPOS  := $(REPOSITORY_URL)$(DAOS_STACK_LEAP_42_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_42_GROUP_REPO),)
+sl42_LOCAL_REPOS  += $(REPOSITORY_URL)$(DAOS_STACK_LEAP_42_GROUP_REPO)/
 endif
 ifneq ($(DAOS_STACK_LEAP_15_LOCAL_REPO),)
-sl15_LOCAL_REPOS  := $(REPOSITORY_URL)/$(DAOS_STACK_LEAP_15_LOCAL_REPO)/
+sl15_LOCAL_REPOS  := $(REPOSITORY_URL)$(DAOS_STACK_LEAP_15_LOCAL_REPO)/
+endif
+ifneq ($(DAOS_STACK_LEAP_15_GROUP_REPO),)
+sl15_LOCAL_REPOS  += $(REPOSITORY_URL)$(DAOS_STACK_LEAP_15_GROUP_REPO)/
 endif
 endif
 
@@ -410,6 +428,12 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
             add_repos+=" --repo $$baseurl";                                 \
     done;                                                                   \
 	distro_repos="";                                                    \
+	for repo_key in $(SUSE_REPO_KEYS); do                               \
+	    curl -L -f -O "$$repo_key";                                     \
+		if ! sudo rpm --import repomd.xml.key; then                     \
+		    cat repomd.xml.key;                                         \
+		fi;                                                             \
+	done;                                                               \
 	for repo in $($(basename $(DISTRO_ID))_LOCAL_REPOS)                 \
 	            $($(basename $(DISTRO_ID))_REPOS); do                   \
 		distro_repos+=" --repo $$repo";                             \
@@ -433,6 +457,10 @@ rpmlint: $(SPEC)
 	rpmlint $<
 
 packaging_check:
+	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
+	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
+	    exit 2;                                                                    \
+	fi
 	if ! diff --exclude \*.sw?                              \
 	          --exclude debian                              \
 	          --exclude .git                                \
@@ -442,12 +470,10 @@ packaging_check:
 	          --exclude README.md                           \
 	          --exclude _topdir                             \
 	          --exclude \*.tar.\*                           \
+	          --exclude \*.code-workspace                   \
+	          --exclude install                             \
 	          -bur $(PACKAGING_CHECK_DIR)/ packaging/; then \
 	    exit 1;                                             \
-	fi
-	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
-	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
-	    exit 2;                                                                    \
 	fi
 
 check-env:
