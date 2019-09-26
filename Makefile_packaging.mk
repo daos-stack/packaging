@@ -178,16 +178,15 @@ $(DEB_TARBASE).orig.tar.$(SRC_EXT) : $(DEB_BUILD).tar.$(SRC_EXT)
 	rm -f $(DEB_TOP)/*.orig.tar.*
 	ln -f $< $@
 
-$(DEB_TOP)/.detar: $(notdir $(SOURCE)) $(DEB_TARBASE).orig.tar.$(SRC_EXT) 
+deb_detar: $(notdir $(SOURCE)) $(DEB_TARBASE).orig.tar.$(SRC_EXT)
 	# Unpack tarball
-	rm -rf ./$(DEB_BUILD)/*
+	rm -rf ./$(DEB_TOP)/.patched ./$(DEB_TOP)/.detar
+	rm -rf ./$(DEB_BUILD)/* ./$(DEB_BUILD)/.pc
 	mkdir -p $(DEB_BUILD)
 	tar -C $(DEB_BUILD) --strip-components=1 -xpf $<
-	touch $@
 
 # Extract patches for Debian
-$(DEB_TOP)/.patched: $(PATCHES) check-env $(DEB_TOP)/.detar | \
-	$(DEB_BUILD)/debian/
+$(DEB_TOP)/.patched: $(PATCHES) check-env deb_detar $(DEB_BUILD)/debian/
 	mkdir -p ${DEB_BUILD}/debian/patches
 	mkdir -p $(DEB_TOP)/patches
 	for f in $(PATCHES); do \
@@ -218,7 +217,7 @@ $(DEB_TOP)/.patched: $(PATCHES) check-env $(DEB_TOP)/.detar | \
 # Move the debian files into the Debian directory.
 ifeq ($(ID_LIKE),debian)
 $(DEB_TOP)/.deb_files : $(shell find debian -type f) \
-	  $(DEB_TOP)/.detar | \
+	  deb_detar | \
 	  $(DEB_BUILD)/debian/
 	find debian -maxdepth 1 -type f -exec cp '{}' '$(DEB_BUILD)/{}' ';'
 	if [ -e debian/source ]; then \
@@ -243,7 +242,7 @@ $(subst rpm,%,$(RPMS)): $(SPEC) $(SOURCES)
 	rpmbuild -bb $(COMMON_RPM_ARGS) $(RPM_BUILD_OPTIONS) $(SPEC)
 
 $(subst deb,%,$(DEBS)): $(DEB_BUILD).tar.$(SRC_EXT) \
-	  $(DEB_TOP)/.deb_files $(DEB_TOP)/.detar $(DEB_TOP)/.patched
+	  deb_detar $(DEB_TOP)/.deb_files $(DEB_TOP)/.patched
 	rm -f $(DEB_TOP)/*.deb $(DEB_TOP)/*.ddeb $(DEB_TOP)/*.dsc \
 	      $(DEB_TOP)/*.dsc $(DEB_TOP)/*.build* $(DEB_TOP)/*.changes \
 	      $(DEB_TOP)/*.debian.tar.*
@@ -267,7 +266,7 @@ $(subst deb,%,$(DEBS)): $(DEB_BUILD).tar.$(SRC_EXT) \
 	  echo $$f; dpkg -c $$f; done
 
 $(DEB_TOP)/$(DEB_DSC): $(CALLING_MAKEFILE) $(DEB_BUILD).tar.$(SRC_EXT) \
-          $(DEB_TOP)/.deb_files $(DEB_TOP)/.detar $(DEB_TOP)/.patched
+          deb_detar $(DEB_TOP)/.deb_files $(DEB_TOP)/.patched
 	rm -f $(DEB_TOP)/*.deb $(DEB_TOP)/*.ddeb $(DEB_TOP)/*.dsc \
 	  $(DEB_TOP)/*.dsc $(DEB_TOP)/*.build* $(DEB_TOP)/*.changes \
 	  $(DEB_TOP)/*.debian.tar.*
@@ -371,7 +370,7 @@ ifneq ($(HAVE_DAOS_STACK_KEY),)
 	       | sudo pbuilder --login --save-after-login
 endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
-	cd $(DEB_TOP); sudo pbuilder --build $(DEB_DSC)
+	cd $(DEB_TOP); sudo pbuilder build $(DEB_DSC)
 else
 sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/         \
 	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                \
@@ -434,10 +433,6 @@ rpmlint: $(SPEC)
 	rpmlint $<
 
 packaging_check:
-	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
-	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
-	    exit 2;                                                                    \
-	fi
 	if ! diff --exclude \*.sw?                              \
 	          --exclude debian                              \
 	          --exclude .git                                \
@@ -447,10 +442,12 @@ packaging_check:
 	          --exclude README.md                           \
 	          --exclude _topdir                             \
 	          --exclude \*.tar.\*                           \
-	          --exclude \*.code-workspace                   \
-	          --exclude install                             \
 	          -bur $(PACKAGING_CHECK_DIR)/ packaging/; then \
 	    exit 1;                                             \
+	fi
+	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
+	    echo "SUSE repos in $(CALLING_MAKEFILE) don't need a \"--repo\" any more"; \
+	    exit 2;                                                                    \
 	fi
 
 check-env:
@@ -488,6 +485,6 @@ show_makefiles:
 show_calling_makefile:
 	@echo $(CALLING_MAKEFILE)
 
-.PHONY: srpm rpms debs ls chrootbuild rpmlint FORCE \
+.PHONY: srpm rpms debs deb_detar ls chrootbuild rpmlint FORCE \
         show_version show_release show_rpms show_source show_sources \
         show_targets check-env
