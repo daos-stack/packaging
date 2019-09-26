@@ -30,12 +30,15 @@ ifeq ($(ID_LIKE),debian)
 UBUNTU_VERS := $(shell . /etc/os-release; echo $$VERSION)
 ifeq ($(VERSION_ID),19.04)
 # Bug - distribution is set to "devel"
-DISTRO_ID = --distribution disco
+DISTRO_ID_OPT = --distribution disco
 endif
+DISTRO_ID := ubuntu$(VERSION_ID)
+DISTRO_BASE = $(basename UBUNTU_$(VERSION_ID))
 VERSION_ID_STR := $(subst $(DOT),_,$(VERSION_ID))
 endif
 ifeq ($(ID),centos)
 DISTRO_ID := el$(VERSION_ID)
+DISTRO_BASE := $(basename EL_$(VERSION_ID))
 define install_repo
 	if yum-config-manager --add-repo=$(1); then                  \
 	    repo_file=$$(ls -tar /etc/yum.repos.d/*.repo | tail -1); \
@@ -48,17 +51,20 @@ endif
 ifeq ($(findstring opensuse,$(ID)),opensuse)
 ID_LIKE := suse
 DISTRO_ID := sl$(VERSION_ID)
+DISTRO_BASE := $(basename LEAP_$(VERSION_ID))
 endif
 ifeq ($(ID),sles)
 # SLES-12 or 15 detected.
 ID_LIKE := suse
 DISTRO_ID := sle$(VERSION_ID)
+DISTRO_BASE := $(basename SLES_$(VERSION_ID))
 endif
 ifeq ($(ID_LIKE),suse)
 define install_repo
 	zypper --non-interactive ar $(1)
 endef
 endif
+DISTRO_ID_BASE := $(basename $(DISTRO_ID))
 
 BUILD_OS ?= leap.42.3
 PACKAGING_CHECK_DIR ?= ../packaging
@@ -293,40 +299,22 @@ ls: $(TARGETS)
 # *_GROUP_* repos are a local mirror of a group of upstream repos.
 # *_GROUP_* repos may not supply a repomd.xml.key.
 ifneq ($(REPOSITORY_URL),)
-ifneq ($(DAOS_STACK_EL_7_LOCAL_REPO),)
-el7_LOCAL_REPOS   := $(REPOSITORY_URL)$(DAOS_STACK_EL_7_LOCAL_REPO)/
+ifneq ($(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO),)
+$(DISTRO_BASE)_LOCAL_REPOS  := $(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_LOCAL_REPO)/
 endif
-SUSE_REPO_KEYS := $(OPENSUSE_MIRROR)repositories/home:/jhli/SLE_15/repodata/repomd.xml.key
+ifneq ($(DAOS_STACK_$(DISTRO_BASE)_GROUP_REPO),)
+$(DISTRO_BASE)_LOCAL_REPOS  += $(REPOSITORY_URL)$(DAOS_STACK_$(DISTRO_BASE)_GROUP_REPO)/
+endif
+SUSE_REPO_KEYS := $(OPENSUSE_MIRROR)/repositories/home:/jhli/SLE_15/repodata/repomd.xml.key
 # Only needed for LEAP 42.3
 SUSE_REPO_KEYS += $(OPENSUSE_MIRROR)/repositories/science:/HPC/openSUSE_Leap_42.3/repodata/repomd.xml.key
-ifneq ($(DAOS_STACK_EL_7_GROUP_REPO),)
-el7_LOCAL_REPOS   += $(REPOSITORY_URL)$(DAOS_STACK_EL_7_GROUP_REPO)/
-endif
-ifneq ($(DAOS_STACK_SLES_12_LOCAL_REPO),)
-sle12_LOCAL_REPOS := $(REPOSITORY_URL)$(DAOS_STACK_SLES_12_LOCAL_REPO)/
-endif
-ifneq ($(DAOS_STACK_SLES_12_GROUP_REPO),)
-sle12_LOCAL_REPOS += $(REPOSITORY_URL)$(DAOS_STACK_SLES_12_GROUP_REPO)/
-endif
-ifneq ($(DAOS_STACK_LEAP_42_LOCAL_REPO),)
-sl42_LOCAL_REPOS  := $(REPOSITORY_URL)$(DAOS_STACK_LEAP_42_LOCAL_REPO)/
-endif
-ifneq ($(DAOS_STACK_LEAP_42_GROUP_REPO),)
-sl42_LOCAL_REPOS  += $(REPOSITORY_URL)$(DAOS_STACK_LEAP_42_GROUP_REPO)/
-endif
-ifneq ($(DAOS_STACK_LEAP_15_LOCAL_REPO),)
-sl15_LOCAL_REPOS  := $(REPOSITORY_URL)$(DAOS_STACK_LEAP_15_LOCAL_REPO)/
-endif
-ifneq ($(DAOS_STACK_LEAP_15_GROUP_REPO),)
-sl15_LOCAL_REPOS  += $(REPOSITORY_URL)$(DAOS_STACK_LEAP_15_GROUP_REPO)/
-endif
 endif
 
 ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                        \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
-	    for repo in $(el7_PR_REPOS) $(PR_REPOS); do                              \
+	    for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do                \
 	        branch="master";                                                     \
 	        build_number="lastSuccessfulBuild";                                  \
 	        if [[ $$repo = *@* ]]; then                                          \
@@ -341,20 +329,20 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 name=$$repo:$$branch:$$build_number\n\
 baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/$$build_number/artifact/artifacts/centos7/\n\
 enabled=1\n\
-gpgcheck = False\n" >> /etc/mock/default.cfg;                                        \
+gpgcheck = False\n" >> /etc/mock/default.cfg;                                    \
 	    done;                                                                    \
-	    for repo in $(el7_LOCAL_REPOS) $(el7_REPOS); do                          \
+	    for repo in $($(DISTRO_BASE)_LOCAL_REPOS) $($(DISTRO_ID_BASE)_REPOS); do \
 	        repo_name=$${repo##*://};                                            \
 	        repo_name=$${repo_name//\//_};                                       \
 	        echo -e "[$$repo_name]\n\
 name=$${repo_name}\n\
 baseurl=$${repo}\n\
-enabled=1\n" >> /etc/mock/default.cfg;                                               \
+enabled=1\n" >> /etc/mock/default.cfg;                                           \
 	    done;                                                                    \
 	    echo "\"\"\"" >> /etc/mock/default.cfg;                                  \
 	else                                                                         \
 	    echo "Unable to update /etc/mock/default.cfg.";                          \
-            echo "You need to make sure it has the needed repos in it yourself.";    \
+            echo "You need to make sure it has the needed repos in it yourself."; \
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
 else ifeq ($(ID_LIKE),debian)
@@ -377,12 +365,12 @@ HAVE_DAOS_STACK_KEY := TRUE
 
 $(DAOS_STACK_REPO_PUB_KEY):
 	curl -f -L -O '$(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_PUB_KEY)'
-
 endif
 endif
 
 chrootbuild: $(DEB_TOP)/$(DEB_DSC) $(DAOS_STACK_REPO_PUB_KEY)
-	sudo pbuilder create --extrapackages "gnupg ca-certificates" $(DISTRO_ID)
+	sudo pbuilder create \
+	    --extrapackages "gnupg ca-certificates" $(DISTRO_ID_OPT)
 ifneq ($(HAVE_DAOS_STACK_KEY),)
 	printf "apt-key add - <<EOF\n$$(cat $(DAOS_STACK_REPO_PUB_KEY))\nEOF" \
 	       | sudo pbuilder --login --save-after-login
@@ -402,9 +390,16 @@ sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                 \
 sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/            \
 	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
+define install_gpg_key
+	curl -L -f -O "$(1)";                           \
+	if ! sudo rpm --import repomd.xml.key; then   \
+	    cat repomd.xml.key;                       \
+	fi
+endef
+
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
-	for repo in $($(basename $(DISTRO_ID))_PR_REPOS) $(PR_REPOS); do    \
+	for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -429,18 +424,12 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
     done;                                                                   \
 	distro_repos="";                                                    \
 	for repo_key in $(SUSE_REPO_KEYS); do                               \
-	    curl -L -f -O "$$repo_key";                                     \
-		if ! sudo rpm --import repomd.xml.key; then                     \
-		    cat repomd.xml.key;                                         \
-		fi;                                                             \
+	    $(call install_gpg_key,$$repo_key);                              \
 	done;                                                               \
-	for repo in $($(basename $(DISTRO_ID))_LOCAL_REPOS)                 \
-	            $($(basename $(DISTRO_ID))_REPOS); do                   \
+	for repo in $($(DISTRO_BASE)_LOCAL_REPOS)                 \
+	            $($(DISTRO_ID_BASE)_REPOS); do                   \
 		distro_repos+=" --repo $$repo";                             \
-	    curl -L -f -O "$$repo"/repodata/repomd.xml.key;                 \
-	    if ! sudo rpm --import repomd.xml.key; then                     \
-	        cat repomd.xml.key;                                         \
-	    fi;                                                             \
+	    $(call install_gpg_key,$$repo/repodata/repomd.xml.key);      \
 	done;                                                               \
 	sudo build $(BUILD_OPTIONS) $$add_repos                             \
 	     $$distro_repos                                                 \
