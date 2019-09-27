@@ -312,36 +312,36 @@ endif
 
 ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
-	if [ -w /etc/mock/default.cfg ]; then                                        \
-	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;  \
-	    for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do                \
-	        branch="master";                                                     \
-	        build_number="lastSuccessfulBuild";                                  \
-	        if [[ $$repo = *@* ]]; then                                          \
-	            branch="$${repo#*@}";                                            \
-	            repo="$${repo%@*}";                                              \
-	            if [[ $$branch = *:* ]]; then                                    \
-	                build_number="$${branch#*:}";                                \
-	                branch="$${branch%:*}";                                      \
-	            fi;                                                              \
-	        fi;                                                                  \
+	if [ -w /etc/mock/default.cfg ]; then                                      \
+	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;\
+	    for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do              \
+	        branch="master";                                                   \
+	        build_number="lastSuccessfulBuild";                                \
+	        if [[ $$repo = *@* ]]; then                                        \
+	            branch="$${repo#*@}";                                          \
+	            repo="$${repo%@*}";                                            \
+	            if [[ $$branch = *:* ]]; then                                  \
+	                build_number="$${branch#*:}";                              \
+	                branch="$${branch%:*}";                                    \
+	            fi;                                                            \
+	        fi;                                                                \
 	        echo -e "[$$repo:$$branch:$$build_number]\n\
 name=$$repo:$$branch:$$build_number\n\
 baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/$$build_number/artifact/artifacts/centos7/\n\
 enabled=1\n\
-gpgcheck = False\n" >> /etc/mock/default.cfg;                                    \
-	    done;                                                                    \
+gpgcheck = False\n" >> /etc/mock/default.cfg;                                  \
+	    done;                                                                  \
 	    for repo in $($(DISTRO_BASE)_LOCAL_REPOS) $($(DISTRO_ID_BASE)_REPOS); do \
-	        repo_name=$${repo##*://};                                            \
-	        repo_name=$${repo_name//\//_};                                       \
+	        repo_name=$${repo##*://};                                          \
+	        repo_name=$${repo_name//\//_};                                     \
 	        echo -e "[$$repo_name]\n\
 name=$${repo_name}\n\
 baseurl=$${repo}\n\
-enabled=1\n" >> /etc/mock/default.cfg;                                           \
-	    done;                                                                    \
-	    echo "\"\"\"" >> /etc/mock/default.cfg;                                  \
-	else                                                                         \
-	    echo "Unable to update /etc/mock/default.cfg.";                          \
+enabled=1\n" >> /etc/mock/default.cfg;                                         \
+	    done;                                                                  \
+	    echo "\"\"\"" >> /etc/mock/default.cfg;                                \
+	else                                                                       \
+	    echo "Unable to update /etc/mock/default.cfg.";                        \
             echo "You need to make sure it has the needed repos in it yourself."; \
 	fi
 	mock $(MOCK_OPTIONS) $(RPM_BUILD_OPTIONS) $<
@@ -378,20 +378,20 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder build $(DEB_DSC)
 else
-sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/         \
-	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                \
+sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/   \
+	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64              \
 	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64            \
+	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64          \
 	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                 \
+sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                         \
 	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/            \
+sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                         \
 	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 define install_gpg_key
-	curl -L -f -O "$(1)";                           \
+	curl -L -f -O "$(1)";                         \
 	if ! sudo rpm --import repomd.xml.key; then   \
 	    cat repomd.xml.key;                       \
 	fi
@@ -399,7 +399,7 @@ endef
 
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
-	for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do    \
+	for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do           \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -420,16 +420,16 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	    esac;                                                           \
 	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
 	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
-            add_repos+=" --repo $$baseurl";                                 \
-    done;                                                                   \
+            add_repos+=" --repo $$baseurl";                             \
+    done;                                                               \
 	distro_repos="";                                                    \
 	for repo_key in $(SUSE_REPO_KEYS); do                               \
-	    $(call install_gpg_key,$$repo_key);                              \
+	    $(call install_gpg_key,$$repo_key);                             \
 	done;                                                               \
-	for repo in $($(DISTRO_BASE)_LOCAL_REPOS)                 \
-	            $($(DISTRO_ID_BASE)_REPOS); do                   \
-		distro_repos+=" --repo $$repo";                             \
-	    $(call install_gpg_key,$$repo/repodata/repomd.xml.key);      \
+	for repo in $($(DISTRO_BASE)_LOCAL_REPOS)                           \
+	            $($(DISTRO_ID_BASE)_REPOS); do                          \
+		distro_repos+=" --repo $$repo";                                 \
+	    $(call install_gpg_key,$$repo/repodata/repomd.xml.key);         \
 	done;                                                               \
 	sudo build $(BUILD_OPTIONS) $$add_repos                             \
 	     $$distro_repos                                                 \
@@ -500,6 +500,6 @@ show_makefiles:
 show_calling_makefile:
 	@echo $(CALLING_MAKEFILE)
 
-.PHONY: srpm rpms debs deb_detar ls chrootbuild rpmlint FORCE \
+.PHONY: srpm rpms debs deb_detar ls chrootbuild rpmlint FORCE        \
         show_version show_release show_rpms show_source show_sources \
         show_targets check-env
