@@ -64,7 +64,6 @@ define install_repo
 	zypper --non-interactive ar $(1)
 endef
 endif
-DISTRO_ID_BASE := $(basename $(DISTRO_ID))
 
 BUILD_OS ?= leap.42.3
 PACKAGING_CHECK_DIR ?= ../packaging
@@ -314,7 +313,7 @@ ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                      \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;\
-	    for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do              \
+	    for repo in $($(DISTRO_ID)_PR_REPOS) $(PR_REPOS); do                   \
 	        branch="master";                                                   \
 	        build_number="lastSuccessfulBuild";                                \
 	        if [[ $$repo = *@* ]]; then                                        \
@@ -331,7 +330,7 @@ baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/
 enabled=1\n\
 gpgcheck = False\n" >> /etc/mock/default.cfg;                                  \
 	    done;                                                                  \
-	    for repo in $($(DISTRO_BASE)_LOCAL_REPOS) $($(DISTRO_ID_BASE)_REPOS); do \
+	    for repo in $($(DISTRO_BASE)_LOCAL_REPOS) $($(DISTRO_BASE)_REPOS); do  \
 	        repo_name=$${repo##*://};                                          \
 	        repo_name=$${repo_name//\//_};                                     \
 	        echo -e "[$$repo_name]\n\
@@ -349,14 +348,14 @@ else ifeq ($(ID_LIKE),debian)
 ifneq ($(DAOS_STACK_REPO_SUPPORT),)
 TEST_STR := $(DAOS_STACK_REPO_UBUNTU_$(VERSION_ID_STR)_LIST)
 ifneq ($(TEST_STR),)
-ubuntu_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(TEST_STR))
+UBUNTU_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(TEST_STR))
 # Additional repos can be added but must be separated by a | character.
-UBUNTU_ADD_REPOS = --othermirror "$(ubuntu_REPOS)"
+UBUNTU_ADD_REPOS = --othermirror "$(UBUNTU_REPOS)"
 else
 ifneq ($(DAOS_STACK_REPO_UBUNTU_ROLLING_LIST),)
-ubuntu_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_UBUNTU_ROLLING_LIST))
+UBUNTU_REPOS := $(shell curl $(DAOS_STACK_REPO_SUPPORT)$(DAOS_STACK_REPO_UBUNTU_ROLLING_LIST))
 # Additional repos can be added but must be separated by a | character.
-UBUNTU_ADD_REPOS = --othermirror "$(ubuntu_REPOS)"
+UBUNTU_ADD_REPOS = --othermirror "$(UBUNTU_REPOS)"
 endif
 endif
 # Need to figure out how to support multiple keys, such as for IPMCTL
@@ -378,16 +377,16 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder build $(DEB_DSC)
 else
-sle12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/   \
+SLES_12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/   \
 	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64              \
 	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
 	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64          \
 	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-sl42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                         \
+LEAP_42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                         \
 	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-sl15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                         \
+LEAP_15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                         \
 	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 define install_gpg_key
@@ -399,7 +398,7 @@ endef
 
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	add_repos="";                                                       \
-	for repo in $($(DISTRO_ID_BASE)_PR_REPOS) $(PR_REPOS); do           \
+	for repo in $($(DISTRO_BASE)_PR_REPOS) $(PR_REPOS); do              \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
 	    if [[ $$repo = *@* ]]; then                                     \
@@ -427,7 +426,7 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	    $(call install_gpg_key,$$repo_key);                             \
 	done;                                                               \
 	for repo in $($(DISTRO_BASE)_LOCAL_REPOS)                           \
-	            $($(DISTRO_ID_BASE)_REPOS); do                          \
+	            $($(DISTRO_BASE)_REPOS); do                             \
 		distro_repos+=" --repo $$repo";                                 \
 	    $(call install_gpg_key,$$repo/repodata/repomd.xml.key);         \
 	done;                                                               \
