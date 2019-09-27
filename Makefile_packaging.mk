@@ -186,7 +186,7 @@ $(DEB_TARBASE).orig.tar.$(SRC_EXT) : $(DEB_BUILD).tar.$(SRC_EXT)
 deb_detar: $(notdir $(SOURCE)) $(DEB_TARBASE).orig.tar.$(SRC_EXT)
 	# Unpack tarball
 	rm -rf ./$(DEB_TOP)/.patched ./$(DEB_TOP)/.detar
-	rm -rf ./$(DEB_BUILD)/* ./$(DEB_BUILD)/.pc
+	rm -rf ./$(DEB_BUILD)/* ./$(DEB_BUILD)/.pc ./$(DEB_BUILD)/.libs
 	mkdir -p $(DEB_BUILD)
 	tar -C $(DEB_BUILD) --strip-components=1 -xpf $<
 
