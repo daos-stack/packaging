@@ -109,7 +109,7 @@ TARGETS := $(RPMS) $(SRPM)
 endif
 
 define install_repos
-	for repo in $($(basename $(DISTRO_ID))_PR_REPOS)                    \
+	for repo in $($(DISTRO_BASE)_PR_REPOS)                    \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
@@ -313,7 +313,7 @@ ifeq ($(ID_LIKE),rhel fedora)
 chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	if [ -w /etc/mock/default.cfg ]; then                                      \
 	    echo -e "config_opts['yum.conf'] += \"\"\"\n" >> /etc/mock/default.cfg;\
-	    for repo in $($(DISTRO_ID)_PR_REPOS) $(PR_REPOS); do                   \
+	    for repo in $($(DISTRO_BASE)_PR_REPOS) $(PR_REPOS); do                   \
 	        branch="master";                                                   \
 	        build_number="lastSuccessfulBuild";                                \
 	        if [[ $$repo = *@* ]]; then                                        \
