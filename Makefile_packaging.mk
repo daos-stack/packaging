@@ -75,13 +75,21 @@ else
 SED_EXPR := 1s/$(DIST)//p
 endif
 SPEC    := $(NAME).spec
+ifeq ($(VERSION),)
 VERSION := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{version}\n' $(SPEC) | sed -n '1p')
+endif
 DEB_VERS := $(subst rc,~rc,$(VERSION))
 DEB_RVERS := $(subst $(DOT),\$(DOT),$(DEB_VERS))
 DEB_BVERS := $(basename $(subst ~rc,$(DOT)rc,$(DEB_VERS)))
+ifeq ($(RELEASE),)
 RELEASE := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{release}\n' $(SPEC) | sed -n '$(SED_EXPR)')
+endif
+ifeq ($(SRPM),)
 SRPM    := _topdir/SRPMS/$(NAME)-$(VERSION)-$(RELEASE)$(DIST).src.rpm
+endif
+ifeq ($(RPMS),)
 RPMS    := $(addsuffix .rpm,$(addprefix _topdir/RPMS/x86_64/,$(shell rpm --specfile $(SPEC))))
+endif
 DEB_TOP := _topdir/BUILD
 DEB_BUILD := $(DEB_TOP)/$(NAME)-$(DEB_VERS)
 DEB_TARBASE := $(DEB_TOP)/$(DEB_NAME)_$(DEB_VERS)
@@ -109,7 +117,7 @@ TARGETS := $(RPMS) $(SRPM)
 endif
 
 define install_repos
-	for repo in $($(DISTRO_BASE)_PR_REPOS)                    \
+	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
@@ -156,6 +164,7 @@ ifeq ($(DL_VERSION),)
 DL_VERSION = $(VERSION)
 endif
 
+ifneq ($(dir $(SOURCE)),./)
 $(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}.asc
 	curl -f -L -O '$(SOURCE).asc'
@@ -171,6 +180,7 @@ v$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 $(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
+endif
 
 $(DEB_TOP)/%: % | $(DEB_TOP)/
 
@@ -377,17 +387,17 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder build $(DEB_DSC)
 else
-SLES_12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/   \
-	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64              \
-	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64          \
-	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
+SLES_12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/ \
+        http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                 \
+        $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/  \
+        http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64             \
+        http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-LEAP_42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                         \
-	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
+LEAP_42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                      \
+	    $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-LEAP_15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                         \
-	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
+LEAP_15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                      \
+	    $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 define install_gpg_key
 	curl -L -f -O "$(1)";                         \
