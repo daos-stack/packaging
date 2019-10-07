@@ -75,28 +75,27 @@ else
 SED_EXPR := 1s/$(DIST)//p
 endif
 SPEC    := $(NAME).spec
-ifeq ($(VERSION),)
 VERSION := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{version}\n' $(SPEC) | sed -n '1p')
-endif
 DEB_VERS := $(subst rc,~rc,$(VERSION))
 DEB_RVERS := $(subst $(DOT),\$(DOT),$(DEB_VERS))
 DEB_BVERS := $(basename $(subst ~rc,$(DOT)rc,$(DEB_VERS)))
-ifeq ($(RELEASE),)
 RELEASE := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{release}\n' $(SPEC) | sed -n '$(SED_EXPR)')
-endif
-ifeq ($(SRPM),)
 SRPM    := _topdir/SRPMS/$(NAME)-$(VERSION)-$(RELEASE)$(DIST).src.rpm
-endif
-ifeq ($(RPMS),)
 RPMS    := $(addsuffix .rpm,$(addprefix _topdir/RPMS/x86_64/,$(shell rpm --specfile $(SPEC))))
-endif
 DEB_TOP := _topdir/BUILD
 DEB_BUILD := $(DEB_TOP)/$(NAME)-$(DEB_VERS)
 DEB_TARBASE := $(DEB_TOP)/$(DEB_NAME)_$(DEB_VERS)
 SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 ifeq ($(ID_LIKE),debian)
 DEBS    := $(addsuffix _$(DEB_VERS)-1_amd64.deb,$(shell sed -n '/-udeb/b; s,^Package:[[:blank:]],$(DEB_TOP)/,p' debian/control))
-DEB_DSC := $(DEB_NAME)_$(shell dpkg-parsechangelog -S version).dsc
+DEB_PREV_RELEASE := $(shell dpkg-parsechangelog -S version)
+ifneq ($(GIT_NUM_COMMITS),)
+DEB_GIT_INFO := .$(GIT_NUM_COMMITS)
+endif
+ifneq ($(GIT_SHORT),)
+DEB_GIT_INFO := $(DEB_GIT_INFO).g$(GIT_SHORT)
+endif
+DEB_DSC := $(DEB_NAME)_$(DEB_PREV_RELEASE)$(DEB_GIT_INFO).dsc
 #Ubuntu Containers do not set a UTF-8 environment by default.
 ifndef LANG
 export LANG = C.UTF-8
@@ -247,6 +246,11 @@ $(DEB_TOP)/.deb_files : $(shell find debian -type f) deb_detar | \
 	  cp -r debian/tests $(DEB_BUILD)/debian; fi
 	rm -f $(DEB_BUILD)/debian/*.ex $(DEB_BUILD)/debian/*.EX
 	rm -f $(DEB_BUILD)/debian/*.orig
+ifneq ($(DEB_GIT_INFO),)
+	cd $(DEB_BUILD); dch --distribution unstable \
+	  --newversion $(DEB_PREV_RELEASE)$(DEB_GIT_INFO) \
+	  "Git commit information"
+endif
 	touch $@
 endif
 
