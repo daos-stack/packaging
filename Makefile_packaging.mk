@@ -89,13 +89,7 @@ SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 ifeq ($(ID_LIKE),debian)
 DEBS    := $(addsuffix _$(DEB_VERS)-1_amd64.deb,$(shell sed -n '/-udeb/b; s,^Package:[[:blank:]],$(DEB_TOP)/,p' debian/control))
 DEB_PREV_RELEASE := $(shell dpkg-parsechangelog -S version)
-ifneq ($(GIT_NUM_COMMITS),)
-DEB_GIT_INFO := .$(GIT_NUM_COMMITS)
-endif
-ifneq ($(GIT_SHORT),)
-DEB_GIT_INFO := $(DEB_GIT_INFO).g$(GIT_SHORT)
-endif
-DEB_DSC := $(DEB_NAME)_$(DEB_PREV_RELEASE)$(DEB_GIT_INFO).dsc
+DEB_DSC := $(DEB_NAME)_$(DEB_PREV_RELEASE)$(GIT_INFO).dsc
 #Ubuntu Containers do not set a UTF-8 environment by default.
 ifndef LANG
 export LANG = C.UTF-8
@@ -153,6 +147,14 @@ all: $(TARGETS)
 	rm -f $@
 	gzip $<
 
+%.bz2: %
+	rm -f $@
+	bzip2 $<
+
+%.xz: %
+	rm -f $@
+	xz -z $<
+
 _topdir/SOURCES/%: % | _topdir/SOURCES/
 	rm -f $@
 	ln $< $@
@@ -163,7 +165,6 @@ ifeq ($(DL_VERSION),)
 DL_VERSION = $(VERSION)
 endif
 
-ifneq ($(dir $(SOURCE)),./)
 $(NAME)-$(DL_VERSION).tar.$(SRC_EXT).asc: $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./$(NAME)-*.tar.{gz,bz*,xz}.asc
 	curl -f -L -O '$(SOURCE).asc'
@@ -179,7 +180,6 @@ v$(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 $(DL_VERSION).tar.$(SRC_EXT): $(SPEC) $(CALLING_MAKEFILE)
 	rm -f ./*.tar.{gz,bz*,xz}
 	curl -f -L -O '$(SOURCE)'
-endif
 
 $(DEB_TOP)/%: % | $(DEB_TOP)/
 
@@ -246,9 +246,9 @@ $(DEB_TOP)/.deb_files : $(shell find debian -type f) deb_detar | \
 	  cp -r debian/tests $(DEB_BUILD)/debian; fi
 	rm -f $(DEB_BUILD)/debian/*.ex $(DEB_BUILD)/debian/*.EX
 	rm -f $(DEB_BUILD)/debian/*.orig
-ifneq ($(DEB_GIT_INFO),)
+ifneq ($(GIT_INFO),)
 	cd $(DEB_BUILD); dch --distribution unstable \
-	  --newversion $(DEB_PREV_RELEASE)$(DEB_GIT_INFO) \
+	  --newversion $(DEB_PREV_RELEASE)$(GIT_INFO) \
 	  "Git commit information"
 endif
 	touch $@
@@ -513,6 +513,9 @@ show_makefiles:
 show_calling_makefile:
 	@echo $(CALLING_MAKEFILE)
 
+show_git_metadata:
+	@echo $(GIT_SHA1):$(GIT_SHORT):$(GIT_NUM_COMMITS)
+
 .PHONY: srpm rpms debs deb_detar ls chrootbuild rpmlint FORCE        \
         show_version show_release show_rpms show_source show_sources \
-        show_targets check-env
+        show_targets check-env show_git_metadata
