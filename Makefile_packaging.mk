@@ -88,7 +88,8 @@ DEB_TARBASE := $(DEB_TOP)/$(DEB_NAME)_$(DEB_VERS)
 SOURCES := $(addprefix _topdir/SOURCES/,$(notdir $(SOURCE)) $(PATCHES))
 ifeq ($(ID_LIKE),debian)
 DEBS    := $(addsuffix _$(DEB_VERS)-1_amd64.deb,$(shell sed -n '/-udeb/b; s,^Package:[[:blank:]],$(DEB_TOP)/,p' debian/control))
-DEB_DSC := $(DEB_NAME)_$(shell dpkg-parsechangelog -S version).dsc
+DEB_PREV_RELEASE := $(shell dpkg-parsechangelog -S version)
+DEB_DSC := $(DEB_NAME)_$(DEB_PREV_RELEASE)$(GIT_INFO).dsc
 #Ubuntu Containers do not set a UTF-8 environment by default.
 ifndef LANG
 export LANG = C.UTF-8
@@ -109,7 +110,7 @@ TARGETS := $(RPMS) $(SRPM)
 endif
 
 define install_repos
-	for repo in $($(DISTRO_BASE)_PR_REPOS)                    \
+	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
@@ -145,6 +146,14 @@ all: $(TARGETS)
 %.gz: %
 	rm -f $@
 	gzip $<
+
+%.bz2: %
+	rm -f $@
+	bzip2 $<
+
+%.xz: %
+	rm -f $@
+	xz -z $<
 
 _topdir/SOURCES/%: % | _topdir/SOURCES/
 	rm -f $@
@@ -237,6 +246,11 @@ $(DEB_TOP)/.deb_files : $(shell find debian -type f) deb_detar | \
 	  cp -r debian/tests $(DEB_BUILD)/debian; fi
 	rm -f $(DEB_BUILD)/debian/*.ex $(DEB_BUILD)/debian/*.EX
 	rm -f $(DEB_BUILD)/debian/*.orig
+ifneq ($(GIT_INFO),)
+	cd $(DEB_BUILD); dch --distribution unstable \
+	  --newversion $(DEB_PREV_RELEASE)$(GIT_INFO) \
+	  "Git commit information"
+endif
 	touch $@
 endif
 
@@ -377,17 +391,17 @@ endif
 	cd $(DEB_TOP); sudo pbuilder --update --override-config $(UBUNTU_ADD_REPOS)
 	cd $(DEB_TOP); sudo pbuilder build $(DEB_DSC)
 else
-SLES_12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/   \
-	       http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64              \
-	       $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/ \
-	       http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64          \
-	       http://cobbler/cobbler/pub/SLES-12.3-x86_64/
+SLES_12_REPOS += http://cobbler/cobbler/repo_mirror/sdkupdate-sles12.3-x86_64/ \
+        http://cobbler/cobbler/repo_mirror/sdk-sles12.3-x86_64                 \
+        $(OPENSUSE_MIRROR)/repositories/openSUSE:/Backports:/SLE-12/standard/  \
+        http://cobbler/cobbler/repo_mirror/updates-sles12.3-x86_64             \
+        http://cobbler/cobbler/pub/SLES-12.3-x86_64/
 
-LEAP_42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                         \
-	      $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
+LEAP_42_REPOS += $(OPENSUSE_MIRROR)/update/leap/42.3/oss/                      \
+	    $(OPENSUSE_MIRROR)/distribution/leap/42.3/repo/oss/suse/
 
-LEAP_15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                         \
-	      $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
+LEAP_15_REPOS += $(OPENSUSE_MIRROR)/update/leap/15.1/oss/                      \
+	    $(OPENSUSE_MIRROR)/distribution/leap/15.1/repo/oss/
 
 define install_gpg_key
 	curl -L -f -O "$(1)";                         \
@@ -499,6 +513,9 @@ show_makefiles:
 show_calling_makefile:
 	@echo $(CALLING_MAKEFILE)
 
+show_git_metadata:
+	@echo $(GIT_SHA1):$(GIT_SHORT):$(GIT_NUM_COMMITS)
+
 .PHONY: srpm rpms debs deb_detar ls chrootbuild rpmlint FORCE        \
         show_version show_release show_rpms show_source show_sources \
-        show_targets check-env
+        show_targets check-env show_git_metadata
