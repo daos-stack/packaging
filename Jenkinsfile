@@ -56,7 +56,7 @@ pipeline {
                 stage('RPM Lint') {
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.centos.7'
+                                filename 'packaging/Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -75,7 +75,7 @@ pipeline {
                 stage('Build on CentOS 7') {
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.centos.7'
+                                filename 'packaging/Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -86,18 +86,23 @@ pipeline {
                          }
                     }
                     steps {
-                        sh '''rm -rf artifacts/centos7/
+                        sh label: "Build package",
+                        script: '''rm -rf artifacts/centos7/
                               mkdir -p artifacts/centos7/
-                              make chrootbuild'''
+                              make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh '''(cd /var/lib/mock/epel-7-x86_64/result/ &&
-                                   cp -r . $OLDPWD/artifacts/centos7/)
-                                  createrepo artifacts/centos7/'''
+                            sh label: "Collect artifacts",
+                               script: '''(cd /var/lib/mock/epel-7-x86_64/result/ &&
+                                           cp -r . $OLDPWD/artifacts/centos7/)
+                                          createrepo artifacts/centos7/'''
                         }
                         unsuccessful {
-                            sh '''mockroot=/var/lib/mock/epel-7-x86_64
+                            sh label: "Collect artifacts",
+                            script: '''mockroot=/var/lib/mock/epel-7-x86_64
+                                              ls -l $mockroot/result/
+                                              cat $mockroot/result/{root,build}.log
                                   artdir=$PWD/artifacts/centos7
                                   cp -af _topdir/SRPMS $artdir
                                   (cd $mockroot/result/ &&
@@ -122,47 +127,56 @@ pipeline {
                 stage('Build on SLES 12.3') {
                     when {
                         beforeAgent true
-                        environment name: 'SLES12_3_DOCKER', value: 'true'
+                        allOf {
+                            environment name: 'SLES12_3_DOCKER', value: 'true'
+                            expression { false }
+                        }
                     }
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.sles.12.3'
+                            filename 'packaging/Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args '--privileged=true'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
                                                 env.JENKINS_URL
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/sles12.3/
+                        sh label: "Build package",
+                        script: '''rm -rf artifacts/sles12.3/
                               mkdir -p artifacts/sles12.3/
-                              make chrootbuild'''
+                              make CHROOT_NAME="suse-12.3-x86_64 chrootbuild" '''
                     }
                     post {
                         success {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/sles12.3
-                                  (cd $mockroot &&
-                                   cp {RPMS/*,SRPMS}/* $artdir)
-                                  createrepo $artdir/'''
+                            sh label: "Collect artifacts",
+                               script: '''(cd /var/lib/mock/sles-12.3-x86_64/result/ &&
+                                           cp -r . $OLDPWD/artifacts/sles12.3/)
+                                          createrepo artifacts/sles12.3/'''
                         }
                         unsuccessful {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/sles12.3
-                                  (if cd $mockroot/BUILD; then
-                                   find . -name configure -printf %h\\\\n | \
-                                   while read dir; do
-                                       if [ ! -f $dir/config.log ]; then
-                                           continue
-                                       fi
-                                       tdir="$artdir/autoconf-logs/$dir"
-                                       mkdir -p $tdir
-                                       cp -a $dir/config.log $tdir/
-                                       done
-                                   fi)'''
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/sles-12.3-x86_64
+                                          ls -l $mockroot/result/
+                                          cat $mockroot/result/{root,build}.log
+                                          artdir=$PWD/artifacts/sles12.3
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                               find . -name configure -printf %h\\\\n | \
+                               while read dir; do
+                                   if [ ! -f $dir/config.log ]; then
+                                       continue
+                                   fi
+                                   tdir="$artdir/autoconf-logs/$dir"
+                                   mkdir -p $tdir
+                                   cp -a $dir/config.log $tdir/
+                                   done
+                               fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/sles12.3/**'
@@ -170,45 +184,55 @@ pipeline {
                     }
                 } //stage('Build on SLES 12.3')
                 stage('Build on Leap 42.3') {
+                    when {
+                        beforeAgent true
+                        expression { false }
+                    }
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.leap.42.3'
+                            filename 'packaging/Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args '--privileged=true'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
                                                 env.JENKINS_URL
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/leap42.3/
+                        sh label: "Build package",
+                        script: '''rm -rf artifacts/leap42.3/
                               mkdir -p artifacts/leap42.3/
-                              make chrootbuild'''
+                              make CHROOT_NAME="opensuse-leap-42.3-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/leap42.3
-                                  (cd $mockroot &&
-                                   cp {RPMS/*,SRPMS}/* $artdir)
-                                  createrepo $artdir/'''
+                            sh label: "Collect artifacts",
+                               script: '''(cd /var/lib/mock/opensuse-leap-42.3-x86_64/result/ &&
+                                           cp -r . $OLDPWD/artifacts/leap42.3/)\n''' +
+                                          createrepo artifacts/leap42.3/'''
                         }
                         unsuccessful {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/leap42.3
-                                  (if cd $mockroot/BUILD; then
-                                   find . -name configure -printf %h\\\\n | \
-                                   while read dir; do
-                                       if [ ! -f $dir/config.log ]; then
-                                           continue
-                                       fi
-                                       tdir="$artdir/autoconf-logs/$dir"
-                                       mkdir -p $tdir
-                                       cp -a $dir/config.log $tdir/
-                                       done
-                                   fi)'''
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/opensuse-leap-42.3-x86_64
+                                          ls -l $mockroot/result/
+                                          cat $mockroot/result/{root,build}.log
+                                          artdir=$PWD/artifacts/leap42.3
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                                               find . -name configure -printf %h\\\\n | \
+                                               while read dir; do
+                                                   if [ ! -f $dir/config.log ]; then
+                                                       continue
+                                                   fi
+                                                   tdir="$artdir/autoconf-logs/$dir"
+                                                   mkdir -p $tdir
+                                                   cp -a $dir/config.log $tdir/
+                                               done
+                                           fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/leap42.3/**'
@@ -218,43 +242,49 @@ pipeline {
                 stage('Build on Leap 15') {
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.leap.15'
+                            filename 'packaging/Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args '--privileged=true'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
                             additionalBuildArgs '--build-arg UID=$(id -u) ' +
                                                 ' --build-arg JENKINS_URL=' +
                                                 env.JENKINS_URL
                         }
                     }
                     steps {
-                        sh '''rm -rf artifacts/leap15/
-                              mkdir -p artifacts/leap15/
-                              make chrootbuild'''
+                        sh label: "Build package",
+                           script: '''rm -rf artifacts/leap15/
+                                      mkdir -p artifacts/leap15/
+                                      make CHROOT_NAME="opensuse-leap-15.1-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/leap15
-                                  (cd $mockroot &&
-                                   cp {RPMS/*,SRPMS}/* $artdir)
-                                  createrepo $artdir/'''
+                            sh label: "Collect artifacts",
+                               script: '''(cd /var/lib/mock/opensuse-leap-15.1-x86_64/result/ &&
+                                           cp -r . $OLDPWD/artifacts/leap15/)\n''' +
+                                          createrepo artifacts/leap15/'''
                         }
                         unsuccessful {
-                            sh '''mockbase=/var/tmp/build-root/home/abuild
-                                  mockroot=$mockbase/rpmbuild
-                                  artdir=$PWD/artifacts/leap15
-                                  (if cd $mockroot/BUILD; then
-                                   find . -name configure -printf %h\\\\n | \
-                                   while read dir; do
-                                       if [ ! -f $dir/config.log ]; then
-                                           continue
-                                       fi
-                                       tdir="$artdir/autoconf-logs/$dir"
-                                       mkdir -p $tdir
-                                       cp -a $dir/config.log $tdir/
-                                       done
-                                   fi)'''
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.1-x86_64
+                                          ls -l $mockroot/result/
+                                          cat $mockroot/result/{root,build}.log
+                                          artdir=$PWD/artifacts/leap15
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                                               find . -name configure -printf %h\\\\n | \
+                                               while read dir; do
+                                                   if [ ! -f $dir/config.log ]; then
+                                                       continue
+                                                   fi
+                                                   tdir="$artdir/autoconf-logs/$dir"
+                                                   mkdir -p $tdir
+                                                   cp -a $dir/config.log $tdir/
+                                               done
+                                           fi)'''
                         }
                         cleanup {
                             archiveArtifacts artifacts: 'artifacts/leap15/**'
