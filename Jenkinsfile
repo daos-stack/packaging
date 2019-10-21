@@ -56,7 +56,7 @@ pipeline {
                 stage('RPM Lint') {
                     agent {
                         dockerfile {
-                                filename 'packaging/Dockerfile.mockbuild'
+                            filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -75,7 +75,7 @@ pipeline {
                 stage('Build on CentOS 7') {
                     agent {
                         dockerfile {
-                                filename 'packaging/Dockerfile.mockbuild'
+                            filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -134,7 +134,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'packaging/Dockerfile.mockbuild'
+                            filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -190,7 +190,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'packaging/Dockerfile.mockbuild'
+                            filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
@@ -242,7 +242,7 @@ pipeline {
                 stage('Build on Leap 15') {
                     agent {
                         dockerfile {
-                            filename 'packaging/Dockerfile.mockbuild'
+                            filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
