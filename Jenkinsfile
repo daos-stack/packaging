@@ -210,7 +210,7 @@ pipeline {
                         success {
                             sh label: "Collect artifacts",
                                script: '''(cd /var/lib/mock/opensuse-leap-42.3-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/leap42.3/)\n''' +
+                                           cp -r . $OLDPWD/artifacts/leap42.3/)
                                           createrepo artifacts/leap42.3/'''
                         }
                         unsuccessful {
@@ -262,7 +262,7 @@ pipeline {
                         success {
                             sh label: "Collect artifacts",
                                script: '''(cd /var/lib/mock/opensuse-leap-15.1-x86_64/result/ &&
-                                           cp -r . $OLDPWD/artifacts/leap15/)\n''' +
+                                           cp -r . $OLDPWD/artifacts/leap15/)
                                           createrepo artifacts/leap15/'''
                         }
                         unsuccessful {
