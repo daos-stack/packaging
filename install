@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# install the packaging/ subdir into a project assumed to be in the CWD
+
+set -e
+
+packaging_dir=${0%/*}/
+cp -a $packaging_dir .
+rm -rf packaging/{debian/,.git,Jenkinsfile,libfabric.spec,Makefile,README.md,_topdir,v1.8.0.tar.gz,install,packaging/packaging.code-workspace}
+ln $packaging_dir/.git/hooks/* .git/hooks/ packaging.code-workspace
