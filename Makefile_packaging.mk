@@ -372,6 +372,7 @@ packaging_check:
 	          --exclude \*.tar.\*                           \
 	          --exclude \*.code-workspace                   \
 	          --exclude install                             \
+	          --exclude packaging                           \
 	          -bur $(PACKAGING_CHECK_DIR)/ packaging/; then \
 	    exit 1;                                             \
 	fi
