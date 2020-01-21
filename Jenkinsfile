@@ -295,6 +295,8 @@ pipeline {
                     when {
                         beforeAgent true
                         allOf {
+                            // disable until we can get a "spectool" built for Ubuntu
+                            expression { false }
                             expression { env.DAOS_STACK_REPO_PUB_KEY != null }
                             expression { env.DAOS_STACK_REPO_SUPPORT != null }
                             expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
@@ -342,6 +344,8 @@ pipeline {
                     when {
                         beforeAgent true
                         allOf {
+                            // disable until we can get a "spectool" built for Ubuntu
+                            expression { false }
                             expression { env.DAOS_STACK_REPO_PUB_KEY != null }
                             expression { env.DAOS_STACK_REPO_SUPPORT != null }
                             expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
