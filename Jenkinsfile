@@ -40,6 +40,10 @@
 // I.e. for testing library changes
 //@Library(value="pipeline-lib@your_branch") _
 
+def update_packaging = '''rm -rf libfabric/packaging/
+                          mkdir libfabric/packaging/
+                          cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
+                          cd libfabric/'''
 pipeline {
     agent none
 
@@ -69,13 +73,10 @@ pipeline {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
                                     checkoutDir: "libfabric"
                         sh label: env.STAGE_NAME,
-                           script: '''rm -rf libfabric/packaging/
-                                      mkdir libfabric/packaging/
-                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
-                                      cd libfabric/
-                                      rm -rf artifacts/centos7/
-                                      mkdir -p artifacts/centos7/
-                                      make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
+                           script: update_packaging + '''
+                                   rm -rf artifacts/centos7/
+                                   mkdir -p artifacts/centos7/
+                                   make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
                     }
                     post {
                         unsuccessful {
@@ -117,13 +118,10 @@ pipeline {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
                                     checkoutDir: "libfabric"
                         sh label: env.STAGE_NAME,
-                           script: '''rm -rf libfabric/packaging/
-                                      mkdir libfabric/packaging/
-                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
-                                      cd libfabric/
-                                      rm -rf artifacts/leap15/
-                                      mkdir -p artifacts/leap15/
-                                      make chrootbuild'''
+                           script: update_packaging + '''
+                                   rm -rf artifacts/leap15/
+                                   mkdir -p artifacts/leap15/
+                                   make chrootbuild'''
                     }
                     post {
                         unsuccessful {
@@ -169,17 +167,14 @@ pipeline {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
                                     checkoutDir: "libfabric"
                         sh label: env.STAGE_NAME,
-                           script: '''rm -rf libfabric/packaging/
-                                      mkdir libfabric/packaging/
-                                      cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
-                                      cd libfabric/
-                                      rm -rf artifacts/ubuntu18.04/
-                                      mkdir -p artifacts/ubuntu18.04/
-                                      : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
-                                      : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
-                                      export DEBEMAIL
-                                      export DEBFULLNAME
-                                      make chrootbuild'''
+                           script: update_packaging + '''
+                                   rm -rf artifacts/ubuntu18.04/
+                                   mkdir -p artifacts/ubuntu18.04/
+                                   : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
+                                   : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
+                                   export DEBEMAIL
+                                   export DEBFULLNAME
+                                   make chrootbuild'''
                     }
                     post {
                         success {
@@ -222,18 +217,15 @@ pipeline {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
                                     checkoutDir: "libfabric"
                         sh label: env.STAGE_NAME,
-                           script: '''rm -rf libfabric/packaging/
-                                      mkdir libfabric/packaging/
-                                      cp Dockerfile* Makefile_packaging.mk libfabric/packaging/
-                                      cd libfabric/
-                                      rm -rf artifacts/ubuntu18.10/
-                                      mkdir -p artifacts/ubuntu18.10/
-                                      mkdir -p _topdir
-                                      : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
-                                      : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
-                                      export DEBEMAIL
-                                      export DEBFULLNAME
-                                      make chrootbuild'''
+                           script: update_packaging + '''
+                                   rm -rf artifacts/ubuntu18.10/
+                                   mkdir -p artifacts/ubuntu18.10/
+                                   mkdir -p _topdir
+                                   : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
+                                   : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
+                                   export DEBEMAIL
+                                   export DEBFULLNAME
+                                   make chrootbuild'''
                     }
                     post {
                         success {
