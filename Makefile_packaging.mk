@@ -25,6 +25,8 @@ PACKAGING_CHECK_DIR ?= ../packaging
 LOCAL_REPOS ?= true
 
 PR_REPOS         := $(shell set -x; git show -s --format=%B | sed -ne 's/^PR-repos: *\(.*\)/\1/p')
+LEAP_15_PR_REPOS := $(shell set -x; git show -s --format=%B | sed -ne 's/^PR-repos-leap15: *\(.*\)/\1/p')
+EL_7_PR_REPOS    := $(shell set -x; git show -s --format=%B | sed -ne 's/^PR-repos-el7: *\(.*\)/\1/p')
 COMMON_RPM_ARGS  := --define "%_topdir $$PWD/_topdir" $(BUILD_DEFINES)
 SPEC             := $(shell if [ -f $(NAME)-$(DISTRO_BASE).spec ]; then echo $(NAME)-$(DISTRO_BASE).spec; else echo $(NAME).spec; fi)
 VERSION           = $(eval VERSION := $(shell rpm $(COMMON_RPM_ARGS) --specfile --qf '%{version}\n' $(SPEC) | sed -n '1p'))$(VERSION)
