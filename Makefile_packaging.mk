@@ -67,8 +67,10 @@ define distro_map
 endef
 
 define install_repos
+	for baseurl in $($(DISTRO_BASE)_LOCAL_REPOS); do                    \
+	    $(call install_repo,$$baseurl);                                 \
+	    done
 	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
-	            $($(DISTRO_BASE)_LOCAL_REPOS)                           \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
