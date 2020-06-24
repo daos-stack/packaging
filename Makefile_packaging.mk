@@ -68,6 +68,7 @@ endef
 
 define install_repos
 	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
+	            $($(DISTRO_BASE)_LOCAL_REPOS)                           \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \
 	    build_number="lastSuccessfulBuild";                             \
@@ -387,9 +388,6 @@ endif
 
 test:
 	# Test the rpmbuild by installing the built RPM
-	rm -f /etc/yum.repos.d/*"${DAOS_STACK_LOCAL_REPO//\//_}"
-	yum-config-manager --add-repo="$REPOSITORY_URL"/"$DAOS_STACK_LOCAL_REPO"
-	echo "gpgcheck = False" >> /etc/yum.repos.d/*"${DAOS_STACK_LOCAL_REPO//\//_}".repo
 	$(call install_repos,$(NAME)@$(BRANCH_NAME):$(BUILD_NUMBER))
 	yum -y install $(NAME)
 
