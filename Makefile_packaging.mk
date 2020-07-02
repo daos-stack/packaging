@@ -23,6 +23,7 @@ RPM_BUILD_OPTIONS += $(EXTERNAL_RPM_BUILD_OPTIONS)
 BUILD_OS ?= leap.15
 PACKAGING_CHECK_DIR ?= ../packaging
 LOCAL_REPOS ?= true
+TEST_PACKAGES ?= ${NAME}
 
 PR_REPOS         := $(shell set -x; git show -s --format=%B | sed -ne 's/^PR-repos: *\(.*\)/\1/p')
 LEAP_15_PR_REPOS := $(shell set -x; git show -s --format=%B | sed -ne 's/^PR-repos-leap15: *\(.*\)/\1/p')
@@ -391,7 +392,7 @@ endif
 test:
 	# Test the rpmbuild by installing the built RPM
 	$(call install_repos,$(NAME)@$(BRANCH_NAME):$(BUILD_NUMBER))
-	yum -y install $(NAME)
+	yum -y install $(TEST_PACKAGES)
 
 show_version:
 	@echo $(VERSION)
