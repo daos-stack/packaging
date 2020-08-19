@@ -7,7 +7,7 @@
 -include Makefile.local
 
 # default to Leap 15 distro for chrootbuild
-CHROOT_NAME ?= opensuse-leap-15.1-x86_64
+CHROOT_NAME ?= opensuse-leap-15.2-x86_64
 include packaging/Makefile_distro_vars.mk
 
 ifeq ($(DEB_NAME),)
@@ -62,7 +62,7 @@ define distro_map
 	        ;;                         \
 	        sl42.3) distro="leap42.3"  \
 	        ;;                         \
-	        sl15.1) distro="leap15"    \
+	        sl15.*) distro="leap15"    \
 	        ;;                         \
 	    esac;
 endef
