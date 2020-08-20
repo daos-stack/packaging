@@ -41,6 +41,12 @@ DISTRO_ID   := sl15.1
 DISTRO_BASE := LEAP_15
 SED_EXPR    := 1p
 endif
+ifeq ($(CHROOT_NAME),opensuse-leap-15.2-x86_64)
+VERSION_ID  := 15.2
+DISTRO_ID   := sl15.2
+DISTRO_BASE := LEAP_15
+SED_EXPR    := 1p
+endif
 ifeq ($(CHROOT_NAME),leap-42.3-x86_64)
 # TBD if support is ever resurrected
 endif
