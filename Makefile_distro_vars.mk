@@ -1,20 +1,25 @@
+DOT     := .
+
+DOCKER  := docker
+
 # Find out what we are
-ID_LIKE := $(shell . /etc/os-release; echo $$ID_LIKE)
+ID_LIKE          := $(shell . /etc/os-release; echo $$ID_LIKE)
 # Of course that does not work for SLES-12
-ID := $(shell . /etc/os-release; echo $$ID)
-VERSION_ID := $(shell . /etc/os-release; echo $$VERSION_ID)
+ID               := $(shell . /etc/os-release; echo $$ID)
+VERSION_ID       := $(shell . /etc/os-release; echo $$VERSION_ID)
+VERSION_CODENAME := $(shell . /etc/os-release; echo $$VERSION_CODENAME)
+
 ifeq ($(ID_LIKE),debian)
-UBUNTU_VERS := $(shell . /etc/os-release; echo $$VERSION)
-ifeq ($(VERSION_ID),19.04)
-# Bug - distribution is set to "devel"
-DISTRO_ID_OPT = --distribution disco
-endif
-DISTRO_ID := ubuntu$(VERSION_ID)
-DISTRO_BASE = $(basename UBUNTU_$(VERSION_ID))
+SPECTOOL       := spectool
+UBUNTU_VERS    := $(shell . /etc/os-release; echo $$VERSION)
+DISTRO_ID_OPT  := --distribution $(VERSION_CODENAME)
+DISTRO_ID      := ubuntu$(VERSION_ID)
 VERSION_ID_STR := $(subst $(DOT),_,$(VERSION_ID))
+DISTRO_BASE    := UBUNTU_$(VERSION_ID_STR)
 endif
 ifeq ($(ID),fedora)
-SPECTOOL    := spectool
+DOCKER   := podman
+SPECTOOL := spectool
 # a Fedora-based mock builder
 # derive the the values of:
 # VERSION_ID (i.e. 7)

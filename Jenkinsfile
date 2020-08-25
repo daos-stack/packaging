@@ -42,10 +42,10 @@
 
 def update_packaging = '''rm -rf libfabric/packaging/
                           mkdir libfabric/packaging/
-                          cp Dockerfile* Makefile_{distro_vars,packaging}.mk libfabric/packaging/
+                          cp Dockerfile* Makefile_{distro_vars,packaging}.mk *_chrootbuild libfabric/packaging/
                           cd libfabric/'''
 pipeline {
-    agent none
+    agent { label 'lightweight' }
 
     stages {
         stage('Cancel Previous Builds') {
@@ -64,14 +64,13 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u)' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL
+                            additionalBuildArgs dockerBuildArgs()
                          }
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric"
+                                    checkoutDir: "libfabric",
+                                    branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
                                    rm -rf artifacts/centos7/
@@ -109,14 +108,13 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u) ' +
-                                                ' --build-arg JENKINS_URL=' +
-                                                env.JENKINS_URL
+                            additionalBuildArgs dockerBuildArgs()
                         }
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric"
+                                    checkoutDir: "libfabric",
+                                    branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
                                    rm -rf artifacts/leap15/
@@ -144,109 +142,39 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on Leap 15')
-                stage('Build libfabric on Ubuntu 18.04') {
-                    when {
-                        beforeAgent true
-                        allOf {
-                            // disable until we can get a "spectool" built for Ubuntu
-                            expression { false }
-                            expression { env.DAOS_STACK_REPO_PUB_KEY != null }
-                            expression { env.DAOS_STACK_REPO_SUPPORT != null }
-                            expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
-                        }
-                    }
+                stage('Build libfabric on Ubuntu 20.04') {
                     agent {
                         dockerfile {
-                            filename 'Dockerfile.ubuntu.18.04'
+                            filename 'Dockerfile.ubuntu.20.04'
                             label 'docker_runner'
                             args '--privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u)'
+                            additionalBuildArgs dockerBuildArgs()
                         }
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric"
+                                    checkoutDir: "libfabric",
+                                    branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
-                                   rm -rf artifacts/ubuntu18.04/
-                                   mkdir -p artifacts/ubuntu18.04/
+                                   rm -rf artifacts/ubuntu20.04/
+                                   mkdir -p artifacts/ubuntu20.04/
                                    : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
                                    : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
                                    export DEBEMAIL
                                    export DEBFULLNAME
+                                   # don't fail the build because of shlib symbol differences
+                                   export DPKG_GENSYMBOLS_CHECK_LEVEL=1
                                    make chrootbuild'''
                     }
                     post {
-                        success {
-                            sh '''cp -v \
-                                   /var/cache/pbuilder/result/*{.buildinfo,.changes,.deb,.dsc,.gz,.xz} \
-                                   artifacts/ubuntu18.04/
-                                  pushd artifacts/ubuntu18.04/
-                                    dpkg-scanpackages . /dev/null | \
-                                      gzip -9c > Packages.gz
-                                  popd'''
-                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
                                script: "cat /var/cache/pbuilder/result/*.buildinfo",
                                returnStatus: true
                         }
                     }
-                } //stage('Build on Ubuntu 18.04')
-                stage('Build on Ubuntu rolling') {
-                    // Rolling is current Ubuntu release
-                    when {
-                        beforeAgent true
-                        allOf {
-                            // disable until we can get a "spectool" built for Ubuntu
-                            expression { false }
-                            expression { env.DAOS_STACK_REPO_PUB_KEY != null }
-                            expression { env.DAOS_STACK_REPO_SUPPORT != null }
-                            expression { env.DAOS_STACK_REPO_UBUNTU_18_04_LIST != null}
-                        }
-                    }
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.ubuntu.rolling'
-                            label 'docker_runner'
-                            args '--privileged=true'
-                            additionalBuildArgs '--build-arg UID=$(id -u)'
-                        }
-                    }
-                    steps {
-                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric"
-                        sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
-                                   rm -rf artifacts/ubuntu18.10/
-                                   mkdir -p artifacts/ubuntu18.10/
-                                   mkdir -p _topdir
-                                   : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
-                                   : "${DEBFULLNAME:="$env.DAOS_FULLNAME"}"
-                                   export DEBEMAIL
-                                   export DEBFULLNAME
-                                   make chrootbuild'''
-                    }
-                    post {
-                        success {
-                            sh '''cp -v \
-                                   /var/cache/pbuilder/result/*{.buildinfo,.changes,.deb,.dsc,.gz,.xz} \
-                                   artifacts/ubuntu_rolling/
-                                  pushd artifacts/ubuntu_rolling/
-                                    dpkg-scanpackages . /dev/null | \
-                                      gzip -9c > Packages.gz
-                                  popd'''
-                        }
-                        unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: "cat /var/cache/pbuilder/result/*.buildinfo",
-                               returnStatus: true
-                        }
-                        cleanup {
-                            archiveArtifacts artifacts: 'artifacts/ubuntu_rolling/**'
-                        }
-                    }
-                } //stage('Build on Ubuntu rolling') 
+                } //stage('Build on Ubuntu 20.04')
             }
         } //stage('Build')
     } // stages
