@@ -79,7 +79,9 @@ define distro_map
 endef
 
 define install_repos
-	for baseurl in $($(DISTRO_BASE)_LOCAL_REPOS); do                    \
+	IFS='|' read -ra BASES <<< "$($(DISTRO_BASE)_LOCAL_REPOS)";         \
+	for baseurl in "$${BASES[@]}"; do                                   \
+	    baseurl="$${baseurl# *}";                                       \
 	    $(call install_repo,$$baseurl);                                 \
 	done
 	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
