@@ -6,5 +6,5 @@ set -e
 
 packaging_dir=${0%/*}/
 cp -a $packaging_dir .
-rm -rf packaging/{packaging/,debian/,.git/,Jenkinsfile,libfabric.spec,Makefile,README.md,_topdir,v1.8.0.tar.gz,install,packaging.code-workspace}
+rm -rf packaging/{packaging/,debian/,.git/,Jenkinsfile,Makefile,README.md,_topdir,v1.8.0.tar.gz,install,packaging.code-workspace}
 ln $packaging_dir/.git/hooks/* .git/hooks/
