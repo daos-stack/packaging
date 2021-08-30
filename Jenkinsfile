@@ -1,5 +1,5 @@
 #!/usr/bin/groovy
-/* Copyright (C) 2019 Intel Corporation
+/* Copyright (C) 2019-2021 Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
