@@ -78,6 +78,9 @@ pipeline {
                                    make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/epel-7-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
                                script: '''mockroot=/var/lib/mock/epel-7-x86_64
@@ -122,6 +125,9 @@ pipeline {
                                    make CHROOT_NAME="epel-8-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/epel-8-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
                                script: '''mockroot=/var/lib/mock/epel-8-x86_64
@@ -163,15 +169,20 @@ pipeline {
                            script: update_packaging + '''
                                    rm -rf artifacts/leap15/
                                    mkdir -p artifacts/leap15/
-                                   make chrootbuild'''
+                                   make CHROOT_NAME="opensuse-leap-15.3-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/opensuse-leap-15.3-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockbase=/var/tmp/build-root/home/abuild
-                                          mockroot=$mockbase/rpmbuild
-                                          artdir=$PWD/artifacts/leap15
-                                          (if cd $mockroot/BUILD; then
+                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.3-x86_64
+                                          artdir=$PWD/libfabric/artifacts/leap15
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
                                            find . -name configure -printf %h\\\\n | \
                                            while read dir; do
                                                if [ ! -f $dir/config.log ]; then
