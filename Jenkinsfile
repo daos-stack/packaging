@@ -100,6 +100,50 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on CentOS 7')
+                stage('Build libfabric on CentOS 8') {
+                    agent {
+                        dockerfile {
+                            filename 'Dockerfile.mockbuild'
+                            label 'docker_runner'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
+                            additionalBuildArgs dockerBuildArgs()
+                         }
+                    }
+                    steps {
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric",
+                                    branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
+                        sh label: env.STAGE_NAME,
+                           script: update_packaging + '''
+                                   rm -rf artifacts/centos8/
+                                   mkdir -p artifacts/centos8/
+                                   make CHROOT_NAME="epel-8-x86_64" chrootbuild'''
+                    }
+                    post {
+                        unsuccessful {
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/epel-8-x86_64
+                                          artdir=$PWD/libfabric/artifacts/centos8
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                                           find . -name configure -printf %h\\\\n | \
+                                           while read dir; do
+                                               if [ ! -f $dir/config.log ]; then
+                                                   continue
+                                               fi
+                                               tdir="$artdir/autoconf-logs/$dir"
+                                               mkdir -p $tdir
+                                               cp -a $dir/config.log $tdir/
+                                           done
+                                           fi)'''
+                            archiveArtifacts artifacts: 'libfabric/artifacts/centos8/**'
+                        }
+                    }
+                } //stage('Build libfabric on CentOS 8.3')
                 stage('Build libfabric on Leap 15') {
                     agent {
                         dockerfile {
