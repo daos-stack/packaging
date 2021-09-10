@@ -78,6 +78,9 @@ pipeline {
                                    make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/epel-7-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
                                script: '''mockroot=/var/lib/mock/epel-7-x86_64
@@ -100,7 +103,7 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on CentOS 7')
-                stage('Build libfabric on CentOS 8.3') {
+                stage('Build libfabric on CentOS 8') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -117,16 +120,18 @@ pipeline {
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
-                                   rm -rf artifacts/centos8/ artifacts/centos8.3/
-                                   mkdir -p artifacts/centos8.3/
-                                   make CHROOT_NAME="epel-8-x86_64" \
-                                        DOT_VER="3" chrootbuild'''
+                                   rm -rf artifacts/centos8/
+                                   mkdir -p artifacts/centos8/
+                                   make CHROOT_NAME="epel-8-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/epel-8-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
                                script: '''mockroot=/var/lib/mock/epel-8-x86_64
-                                          artdir=$PWD/libfabric/artifacts/centos8.3
+                                          artdir=$PWD/libfabric/artifacts/centos8
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
                                            cp -r . $artdir)
@@ -141,11 +146,11 @@ pipeline {
                                                cp -a $dir/config.log $tdir/
                                            done
                                            fi)'''
-                            archiveArtifacts artifacts: 'libfabric/artifacts/centos8.3/**'
+                            archiveArtifacts artifacts: 'libfabric/artifacts/centos8/**'
                         }
                     }
                 } //stage('Build libfabric on CentOS 8.3')
-                stage('Build libfabric on CentOS 8.4') {
+                stage('Build libfabric on Leap 15') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -154,7 +159,7 @@ pipeline {
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
                             additionalBuildArgs dockerBuildArgs()
-                         }
+                        }
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
@@ -162,16 +167,18 @@ pipeline {
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
-                                   rm -rf artifacts/centos8/ artifacts/centos8.4/
-                                   mkdir -p artifacts/centos8.4/
-                                   make CHROOT_NAME="epel-8-x86_64" \
-                                        DOT_VER="4" chrootbuild'''
+                                   rm -rf artifacts/leap15/
+                                   mkdir -p artifacts/leap15/
+                                   make CHROOT_NAME="opensuse-leap-15.3-x86_64" chrootbuild'''
                     }
                     post {
+                        success {
+                            sh 'ls -l /var/lib/mock/opensuse-leap-15.3-x86_64/result/'
+                        }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/epel-8-x86_64
-                                          artdir=$PWD/libfabric/artifacts/centos8.4
+                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.3-x86_64
+                                          artdir=$PWD/libfabric/artifacts/leap15
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
                                            cp -r . $artdir)
@@ -184,100 +191,12 @@ pipeline {
                                                tdir="$artdir/autoconf-logs/$dir"
                                                mkdir -p $tdir
                                                cp -a $dir/config.log $tdir/
-                                           done
-                                           fi)'''
-                            archiveArtifacts artifacts: 'libfabric/artifacts/centos8.4/**'
-                        }
-                    }
-                } //stage('Build libfabric on CentOS 8.4')
-                stage('Build libfabric on Leap 15.2') {
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.mockbuild'
-                            label 'docker_runner'
-                            args  '--group-add mock' +
-                                  ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
-                        }
-                    }
-                    steps {
-                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
-                                    branch: commitPragma(pragma: 'libfabric-branch',
-                                                         def_val: 'master')
-                        sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
-                                   rm -rf artifacts/leap15/ artifacts/leap15.2/
-                                   mkdir -p artifacts/leap15.2/
-                                   make CHROOT_NAME="opensuse-leap-15.2-x86_64" \
-                                   chrootbuild'''
-                    }
-                    post {
-                        unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: '''mockbase=/var/tmp/build-root/home/abuild
-                                          mockroot=$mockbase/rpmbuild
-                                          artdir=$PWD/artifacts/leap15.2
-                                          (if cd $mockroot/BUILD; then
-                                           find . -name configure -printf %h\\\\n | \
-                                           while read dir; do
-                                               if [ ! -f $dir/config.log ]; then
-                                                   continue
-                                               fi
-                                               tdir="$artdir/autoconf-logs/$dir"
-                                               mkdir -p $tdir
-                                               cp -a $dir/config.log $tdir/
                                                done
                                            fi)'''
-                            archiveArtifacts artifacts: 'libfabric/artifacts/leap15.2/**'
+                            archiveArtifacts artifacts: 'libfabric/artifacts/leap15/**'
                         }
                     }
-                } //stage('Build libfabric on Leap 15.2')
-                stage('Build libfabric on Leap 15.3') {
-                    agent {
-                        dockerfile {
-                            filename 'Dockerfile.mockbuild'
-                            label 'docker_runner'
-                            args  '--group-add mock' +
-                                  ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
-                        }
-                    }
-                    steps {
-                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
-                                    branch: commitPragma(pragma: 'libfabric-branch',
-                                                         def_val: 'master')
-                        sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
-                                   rm -rf artifacts/leap15/ artifacts/leap15.3/
-                                   mkdir -p artifacts/leap15.3/
-                                   make CHROOT_NAME="opensuse-leap-15.3-x86_64" \
-                                   chrootbuild'''
-                    }
-                    post {
-                        unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: '''mockbase=/var/tmp/build-root/home/abuild
-                                          mockroot=$mockbase/rpmbuild
-                                          artdir=$PWD/artifacts/leap15.3
-                                          (if cd $mockroot/BUILD; then
-                                           find . -name configure -printf %h\\\\n | \
-                                           while read dir; do
-                                               if [ ! -f $dir/config.log ]; then
-                                                   continue
-                                               fi
-                                               tdir="$artdir/autoconf-logs/$dir"
-                                               mkdir -p $tdir
-                                               cp -a $dir/config.log $tdir/
-                                               done
-                                           fi)'''
-                            archiveArtifacts artifacts: 'libfabric/artifacts/leap15.3/**'
-                        }
-                    }
-                } //stage('Build libfabric on Leap 15.3')
+                } //stage('Build libfabric on Leap 15')
                 stage('Build libfabric on Ubuntu 20.04') {
                     agent {
                         dockerfile {
