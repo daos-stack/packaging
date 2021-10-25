@@ -169,15 +169,15 @@ pipeline {
                            script: update_packaging + '''
                                    rm -rf artifacts/leap15/
                                    mkdir -p artifacts/leap15/
-                                   make CHROOT_NAME="opensuse-leap-15.3-x86_64" chrootbuild'''
+                                   make CHROOT_NAME="opensuse-leap-15.2-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh 'ls -l /var/lib/mock/opensuse-leap-15.3-x86_64/result/'
+                            sh 'ls -l /var/lib/mock/opensuse-leap-15.2-x86_64/result/'
                         }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.3-x86_64
+                               script: '''mockroot=/var/lib/mock/opensuse-leap-15.2-x86_64
                                           artdir=$PWD/libfabric/artifacts/leap15
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
