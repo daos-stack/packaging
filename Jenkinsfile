@@ -75,15 +75,15 @@ pipeline {
                            script: update_packaging + '''
                                    rm -rf artifacts/centos7/
                                    mkdir -p artifacts/centos7/
-                                   make CHROOT_NAME="epel-7-x86_64" chrootbuild'''
+                                   make CHROOT_NAME="centos+epel-7-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh 'ls -l /var/lib/mock/epel-7-x86_64/result/'
+                            sh 'ls -l /var/lib/mock/centos+epel-7-x86_64/result/'
                         }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/epel-7-x86_64
+                               script: '''mockroot=/var/lib/mock/centos+epel-7-x86_64
                                           artdir=$PWD/libfabric/artifacts/centos7
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
@@ -103,7 +103,7 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on CentOS 7')
-                stage('Build libfabric on CentOS 8') {
+                stage('Build libfabric on EL 8') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -120,18 +120,18 @@ pipeline {
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: update_packaging + '''
-                                   rm -rf artifacts/centos8/
-                                   mkdir -p artifacts/centos8/
-                                   make CHROOT_NAME="epel-8-x86_64" chrootbuild'''
+                                   rm -rf artifacts/el8/
+                                   mkdir -p artifacts/el8/
+                                   make CHROOT_NAME="rocky+epel-8-x86_64" chrootbuild'''
                     }
                     post {
                         success {
-                            sh 'ls -l /var/lib/mock/epel-8-x86_64/result/'
+                            sh 'ls -l /var/lib/mock/rocky+epel-8-x86_64/result/'
                         }
                         unsuccessful {
                             sh label: "Collect artifacts",
-                               script: '''mockroot=/var/lib/mock/epel-8-x86_64
-                                          artdir=$PWD/libfabric/artifacts/centos8
+                               script: '''mockroot=/var/lib/mock/rocky+epel-8-x86_64
+                                          artdir=$PWD/libfabric/artifacts/el8
                                           cp -af _topdir/SRPMS $artdir
                                           (cd $mockroot/result/ &&
                                            cp -r . $artdir)
@@ -146,7 +146,7 @@ pipeline {
                                                cp -a $dir/config.log $tdir/
                                            done
                                            fi)'''
-                            archiveArtifacts artifacts: 'libfabric/artifacts/centos8/**'
+                            archiveArtifacts artifacts: 'libfabric/artifacts/el8/**'
                         }
                     }
                 } //stage('Build libfabric on CentOS 8.3')
