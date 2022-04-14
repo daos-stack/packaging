@@ -1,5 +1,5 @@
 #!/usr/bin/groovy
-/* Copyright (C) 2019-2021 Intel Corporation
+/* Copyright (C) 2019-2022 Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,13 @@
 // I.e. for testing library changes
 //@Library(value="pipeline-lib@your_branch") _
 
-def update_packaging = '''rm -rf libfabric/packaging/
-                          mkdir libfabric/packaging/
-                          cp Dockerfile* Makefile_{distro_vars,packaging}.mk *_chrootbuild libfabric/packaging/
-                          cd libfabric/'''
+String updatePackaging(String dir) {
+    return """rm -rf ${dir}/packaging/
+              mkdir ${dir}/packaging/
+              cp Dockerfile* Makefile_{distro_vars,packaging}.mk *_chrootbuild ${dir}/packaging/
+              cd ${dir}/"""
+}
+
 pipeline {
     agent { label 'lightweight' }
 
@@ -72,7 +75,7 @@ pipeline {
                                     checkoutDir: "libfabric",
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
+                           script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/centos7/
                                    mkdir -p artifacts/centos7/
                                    make CHROOT_NAME="centos+epel-7-x86_64" chrootbuild'''
@@ -103,7 +106,7 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on CentOS 7')
-                stage('Build libfabric on EL 8') {
+                stage('Build libfabric on EL 8.4') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -119,10 +122,10 @@ pipeline {
                                     checkoutDir: "libfabric",
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
+                           script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/el8/
                                    mkdir -p artifacts/el8/
-                                   make CHROOT_NAME="rocky+epel-8-x86_64" chrootbuild'''
+                                   make CHROOT_NAME="rocky+epel-8-x86_64" DISTRO_VERSION=8 DISTRO_VERSION_EL8=8.4 chrootbuild'''
                     }
                     post {
                         success {
@@ -149,7 +152,54 @@ pipeline {
                             archiveArtifacts artifacts: 'libfabric/artifacts/el8/**'
                         }
                     }
-                } //stage('Build libfabric on CentOS 8.3')
+                } //stage('Build libfabric on EL 8')
+                stage('Build mercury on EL 8') {
+                    agent {
+                        dockerfile {
+                            filename 'Dockerfile.mockbuild'
+                            label 'docker_runner'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
+                            additionalBuildArgs dockerBuildArgs()
+                         }
+                    }
+                    steps {
+                        checkoutScm url: 'https://github.com/daos-stack/mercury.git',
+                                    checkoutDir: "mercury",
+                                    branch: commitPragma(pragma: 'mercury-branch', def_val: 'master')
+                        sh label: env.STAGE_NAME,
+                           script: updatePackaging('mercury') + '''
+                                   rm -rf artifacts/el8/
+                                   mkdir -p artifacts/el8/
+                                   make CHROOT_NAME="rocky+epel-8-x86_64" chrootbuild'''
+                    }
+                    post {
+                        success {
+                            sh 'ls -l /var/lib/mock/rocky+epel-8-x86_64/result/'
+                        }
+                        unsuccessful {
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/rocky+epel-8-x86_64
+                                          artdir=$PWD/mercury/artifacts/el8
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                                           find . -name configure -printf %h\\\\n | \
+                                           while read dir; do
+                                               if [ ! -f $dir/config.log ]; then
+                                                   continue
+                                               fi
+                                               tdir="$artdir/autoconf-logs/$dir"
+                                               mkdir -p $tdir
+                                               cp -a $dir/config.log $tdir/
+                                           done
+                                           fi)'''
+                            archiveArtifacts artifacts: 'mercury/artifacts/el8/**'
+                        }
+                    }
+                } //stage('Build mercury on EL 8')
                 stage('Build libfabric on Leap 15') {
                     agent {
                         dockerfile {
@@ -166,7 +216,7 @@ pipeline {
                                     checkoutDir: "libfabric",
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
+                           script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/leap15/
                                    mkdir -p artifacts/leap15/
                                    make CHROOT_NAME="opensuse-leap-15.3-x86_64" chrootbuild'''
@@ -211,7 +261,7 @@ pipeline {
                                     checkoutDir: "libfabric",
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
-                           script: update_packaging + '''
+                           script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/ubuntu20.04/
                                    mkdir -p artifacts/ubuntu20.04/
                                    : "${DEBEMAIL:="$env.DAOS_EMAIL"}"
