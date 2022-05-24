@@ -98,11 +98,13 @@ define distro_map
 endef
 
 define install_repos
+ifeq ($(ID_LIKE),debian)
 	IFS='|' read -ra BASES <<< "$($(DISTRO_BASE)_LOCAL_REPOS)";         \
 	for baseurl in "$${BASES[@]}"; do                                   \
 	    baseurl="$${baseurl# *}";                                       \
 	    $(call install_repo,$$baseurl);                                 \
 	done
+endif
 	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
 	            $(PR_REPOS) $(1); do                                    \
 	    branch="master";                                                \

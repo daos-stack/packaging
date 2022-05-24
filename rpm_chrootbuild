@@ -11,7 +11,7 @@ ln -sf /etc/mock/logging.ini "$mock_config_dir/"
 
 cp "$original_cfg_file" "$cfg_file"
 
-if [ "${CHROOT_NAME}" == "epel-8-x86_64" ]; then
+if [[ $CHROOT_NAME == *epel-8-x86_64 ]]; then
     cat <<EOF >> "$cfg_file"
 config_opts['module_setup_commands'] = [
   ('enable', 'javapackages-tools:201801'),
