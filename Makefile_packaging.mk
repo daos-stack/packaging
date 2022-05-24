@@ -98,27 +98,29 @@ define distro_map
 endef
 
 define install_repos
-	IFS='|' read -ra BASES <<< "$($(DISTRO_BASE)_LOCAL_REPOS)";         \
-	for baseurl in "$${BASES[@]}"; do                                   \
-	    baseurl="$${baseurl# *}";                                       \
-	    $(call install_repo,$$baseurl);                                 \
-	done
-	for repo in $($(DISTRO_BASE)_PR_REPOS)                              \
-	            $(PR_REPOS) $(1); do                                    \
-	    branch="master";                                                \
-	    build_number="lastSuccessfulBuild";                             \
-	    if [[ $$repo = *@* ]]; then                                     \
-	        branch="$${repo#*@}";                                       \
-	        repo="$${repo%@*}";                                         \
-	        if [[ $$branch = *:* ]]; then                               \
-	            build_number="$${branch#*:}";                           \
-	            branch="$${branch%:*}";                                 \
-	        fi;                                                         \
-	    fi;                                                             \
-	    $(call distro_map)                                              \
+	if [ "$(ID_LIKE)" = "debian" ]; then                            \
+	    IFS='|' read -ra BASES <<< "$($(DISTRO_BASE)_LOCAL_REPOS)"; \
+	    for baseurl in "$${BASES[@]}"; do                           \
+	        baseurl="$${baseurl# *}";                               \
+	        $(call install_repo,$$baseurl)                          \
+	    done;                                                       \
+	fi
+	for repo in $($(DISTRO_BASE)_PR_REPOS)                                                             \
+	            $(PR_REPOS) $(1); do                                                                   \
+	    branch="master";                                                                               \
+	    build_number="lastSuccessfulBuild";                                                            \
+	    if [[ $$repo = *@* ]]; then                                                                    \
+	        branch="$${repo#*@}";                                                                      \
+	        repo="$${repo%@*}";                                                                        \
+	        if [[ $$branch = *:* ]]; then                                                              \
+	            build_number="$${branch#*:}";                                                          \
+	            branch="$${branch%:*}";                                                                \
+	        fi;                                                                                        \
+	    fi;                                                                                            \
+	    $(call distro_map)                                                                             \
 	    baseurl=$${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$$repo/job/$$branch/; \
-	    baseurl+=$$build_number/artifact/artifacts/$$distro/;           \
-	    $(call install_repo,$$baseurl);                                 \
+	    baseurl+=$$build_number/artifact/artifacts/$$distro/;                                          \
+	    $(call install_repo,$$baseurl)                                                                 \
         done
 endef
 
