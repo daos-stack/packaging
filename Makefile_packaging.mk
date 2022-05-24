@@ -382,26 +382,32 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	DISTRO_REPOS='$(DISTRO_REPOS)'                          \
 	ARTIFACTORY_URL="$(ARTIFACTORY_URL)"                    \
 	REPOSITORY_URL="$(REPOSITORY_URL)"                      \
+	DISTRO_VERSION="$(DISTRO_VERSION)"                      \
 	TARGET="$<"                                             \
 	packaging/rpm_chrootbuild
 endif
 
 podman_chrootbuild:
 	if ! podman build --build-arg REPO_FILE_URL=$(REPO_FILE_URL) \
-	                  -t chrootbuild                             \
+	                  -t $(subst +,-,$(CHROOT_NAME))-chrootbuild \
 	                  -f packaging/Dockerfile.mockbuild .; then  \
 		echo "Container build failed";                           \
 	    exit 1;                                                  \
 	fi
 	rm -f /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log
-	if ! podman run --rm --privileged -w $(TOPDIR) -v=$(TOPDIR)/..:$(TOPDIR)/..                              \
-	                -it chrootbuild bash -c "DISTRO_REPOS=false REPO_FILE_URL=$(REPO_FILE_URL)               \
-	                                         REPOSITORY_URL=$(REPOSITORY_URL)                                \
-	                                         make REPO_FILES_PR=$(REPO_FILES_PR)                             \
-											      CHROOT_NAME=$(CHROOT_NAME) -C $(CURDIR) chrootbuild"; then \
-	    cat /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log;                                            \
-	    exit 1;                                                                                              \
-	fi
+	podman run --rm --privileged -w $(TOPDIR) -v=$(TOPDIR)/..:$(TOPDIR)/..                                                     \
+	           -it $(subst +,-,$(CHROOT_NAME))-chrootbuild                                                                     \
+	           bash -c 'if ! DISTRO_REPOS=false                                                                                \
+	                         REPO_FILE_URL=$(REPO_FILE_URL)                                                                    \
+	                         REPOSITORY_URL=$(REPOSITORY_URL)                                                                  \
+	                         make REPO_FILES_PR=$(REPO_FILES_PR)                                                               \
+	                              MOCK_OPTIONS=$(MOCK_OPTIONS)                                                                 \
+	                              CHROOT_NAME=$(CHROOT_NAME) -C $(CURDIR) chrootbuild; then                                    \
+	                            cat /var/lib/mock/$(CHROOT_NAME)/{result/{root,build},root/builddir/build/BUILD/*/config}.log; \
+	                            exit 1;                                                                                        \
+	                        fi;                                                                                                \
+	                        rpmlint $$(ls /var/lib/mock/$(CHROOT_NAME)/result/*.rpm |                                          \
+	                            grep -v -e debuginfo -e debugsource -e src.rpm)'
 
 docker_chrootbuild:
 	if ! $(DOCKER) build --build-arg UID=$$(id -u) -t chrootbuild   \
@@ -420,7 +426,7 @@ docker_chrootbuild:
 	fi
 
 rpmlint: $(SPEC)
-	rpmlint $<
+	rpmlint --ignore-unused-rpmlintrc $<
 
 packaging_check:
 	if grep -e --repo $(CALLING_MAKEFILE); then                                    \
@@ -456,6 +462,9 @@ test:
 	# Test the rpmbuild by installing the built RPM
 	$(call install_repos,$(REPO_NAME)@$(BRANCH_NAME):$(BUILD_NUMBER))
 	dnf -y install $(TEST_PACKAGES)
+
+show_NAME:
+	@echo '$(NAME)'
 
 show_DISTRO_ID:
 	@echo '$(DISTRO_ID)'
