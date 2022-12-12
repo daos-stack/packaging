@@ -48,8 +48,8 @@ RUN (cd $(python3 -c 'import site; print(site.getsitepackages()[-1])') &&       
          if ! patch -p1; then                                                                  \
              exit 1;                                                                           \
          fi;                                                                                   \
-         rm -f rpmlint/__pycache__/{cli,lint}.*.pyc) < rpmlint--ignore-unused-rpmlintrc.patch; \
-     fi;                                                                                       \
+         rm -f rpmlint/__pycache__/{cli,lint}.*.pyc;                                           \
+     fi) < rpmlint--ignore-unused-rpmlintrc.patch;                                             \
     rm -f  rpmlint--ignore-unused-rpmlintrc.patch
 
 # show the release that was built
