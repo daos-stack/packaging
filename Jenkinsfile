@@ -106,7 +106,7 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on CentOS 7')
-                stage('Build libfabric on EL 8.4') {
+                stage('Build libfabric on EL 8') {
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -125,7 +125,7 @@ pipeline {
                            script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/el8/
                                    mkdir -p artifacts/el8/
-                                   make CHROOT_NAME="rocky+epel-8-x86_64" DISTRO_VERSION=8 DISTRO_VERSION_EL8=8.4 chrootbuild'''
+                                   make CHROOT_NAME="rocky+epel-8-x86_64" DISTRO_VERSION=8 chrootbuild'''
                     }
                     post {
                         success {
@@ -153,6 +153,53 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on EL 8')
+                stage('Build libfabric on EL 9') {
+                    agent {
+                        dockerfile {
+                            filename 'Dockerfile.mockbuild'
+                            label 'docker_runner'
+                            args  '--group-add mock' +
+                                  ' --cap-add=SYS_ADMIN' +
+                                  ' --privileged=true'
+                            additionalBuildArgs dockerBuildArgs()
+                         }
+                    }
+                    steps {
+                        checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
+                                    checkoutDir: "libfabric",
+                                    branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
+                        sh label: env.STAGE_NAME,
+                           script: updatePackaging('libfabric') + '''
+                                   rm -rf artifacts/el9/
+                                   mkdir -p artifacts/el9/
+                                   make CHROOT_NAME="rocky+epel-9-x86_64" DISTRO_VERSION=9 chrootbuild'''
+                    }
+                    post {
+                        success {
+                            sh 'ls -l /var/lib/mock/rocky+epel-9-x86_64/result/'
+                        }
+                        unsuccessful {
+                            sh label: "Collect artifacts",
+                               script: '''mockroot=/var/lib/mock/rocky+epel-9-x86_64
+                                          artdir=$PWD/libfabric/artifacts/el9
+                                          cp -af _topdir/SRPMS $artdir
+                                          (cd $mockroot/result/ &&
+                                           cp -r . $artdir)
+                                          (if cd $mockroot/root/builddir/build/BUILD/*/; then
+                                           find . -name configure -printf %h\\\\n | \
+                                           while read dir; do
+                                               if [ ! -f $dir/config.log ]; then
+                                                   continue
+                                               fi
+                                               tdir="$artdir/autoconf-logs/$dir"
+                                               mkdir -p $tdir
+                                               cp -a $dir/config.log $tdir/
+                                           done
+                                           fi)'''
+                            archiveArtifacts artifacts: 'libfabric/artifacts/el9/**'
+                        }
+                    }
+                } //stage('Build libfabric on EL 9')
                 stage('Build mercury on EL 8') {
                     agent {
                         dockerfile {
@@ -208,7 +255,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg FVERSION=37'
                         }
                     }
                     steps {
