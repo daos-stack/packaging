@@ -69,7 +69,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
                          }
                     }
                     steps {
