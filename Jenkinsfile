@@ -69,7 +69,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -116,7 +116,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -163,7 +163,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -210,7 +210,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -304,6 +304,7 @@ pipeline {
                             label 'docker_runner'
                             args '--privileged=true'
                             additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                         }
                     }
                     steps {
