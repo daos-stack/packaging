@@ -1,4 +1,5 @@
 #!/usr/bin/groovy
+/* groovylint-disable DuplicateMapLiteral, DuplicateStringLiteral, NestedBlockDepth */
 /* Copyright (C) 2019-2022 Intel Corporation
  * All rights reserved.
  *
@@ -47,6 +48,7 @@ String updatePackaging(String dir) {
               cd ${dir}/"""
 }
 
+/* groovylint-disable-next-line CompileStatic */
 pipeline {
     agent { label 'lightweight' }
 
@@ -72,7 +74,7 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('libfabric') + '''
@@ -85,7 +87,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/centos+epel-7-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/centos+epel-7-x86_64
                                           artdir=$PWD/libfabric/artifacts/centos7
                                           cp -af _topdir/SRPMS $artdir
@@ -119,7 +121,7 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('libfabric') + '''
@@ -132,7 +134,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/rocky+epel-8-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/rocky+epel-8-x86_64
                                           artdir=$PWD/libfabric/artifacts/el8
                                           cp -af _topdir/SRPMS $artdir
@@ -166,7 +168,7 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('libfabric') + '''
@@ -179,7 +181,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/rocky+epel-9-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/rocky+epel-9-x86_64
                                           artdir=$PWD/libfabric/artifacts/el9
                                           cp -af _topdir/SRPMS $artdir
@@ -213,7 +215,7 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/mercury.git',
-                                    checkoutDir: "mercury",
+                                    checkoutDir: 'mercury',
                                     branch: commitPragma(pragma: 'mercury-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('mercury') + '''
@@ -226,7 +228,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/rocky+epel-8-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/rocky+epel-8-x86_64
                                           artdir=$PWD/mercury/artifacts/el8
                                           cp -af _topdir/SRPMS $artdir
@@ -260,7 +262,7 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('libfabric') + '''
@@ -273,7 +275,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/opensuse-leap-15.3-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/opensuse-leap-15.3-x86_64
                                           artdir=$PWD/libfabric/artifacts/leap15
                                           cp -af _topdir/SRPMS $artdir
@@ -305,9 +307,10 @@ pipeline {
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
+                           /* groovylint-disable-next-line GStringExpressionWithinString */
                            script: updatePackaging('libfabric') + '''
                                    rm -rf artifacts/ubuntu20.04/
                                    mkdir -p artifacts/ubuntu20.04/
@@ -321,8 +324,8 @@ pipeline {
                     }
                     post {
                         unsuccessful {
-                            sh label: "Collect artifacts",
-                               script: "cat /var/cache/pbuilder/result/*.buildinfo",
+                            sh label: 'Collect artifacts',
+                               script: 'cat /var/cache/pbuilder/result/*.buildinfo',
                                returnStatus: true
                         }
                     }
