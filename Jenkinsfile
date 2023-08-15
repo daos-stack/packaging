@@ -1,4 +1,5 @@
 #!/usr/bin/groovy
+/* groovylint-disable DuplicateMapLiteral, DuplicateStringLiteral, NestedBlockDepth */
 /* Copyright (C) 2019-2022 Intel Corporation
  * All rights reserved.
  *
@@ -47,6 +48,7 @@ String updatePackaging(String dir) {
               cd ${dir}/"""
 }
 
+/* groovylint-disable-next-line CompileStatic */
 pipeline {
     agent { label 'lightweight' }
 
@@ -67,12 +69,12 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
                         checkoutScm url: 'https://github.com/daos-stack/libfabric.git',
-                                    checkoutDir: "libfabric",
+                                    checkoutDir: 'libfabric',
                                     branch: commitPragma(pragma: 'libfabric-branch', def_val: 'master')
                         sh label: env.STAGE_NAME,
                            script: updatePackaging('libfabric') + '''
@@ -85,7 +87,7 @@ pipeline {
                             sh 'ls -l /var/lib/mock/centos+epel-7-x86_64/result/'
                         }
                         unsuccessful {
-                            sh label: "Collect artifacts",
+                            sh label: 'Collect artifacts',
                                script: '''mockroot=/var/lib/mock/centos+epel-7-x86_64
                                           artdir=$PWD/libfabric/artifacts/centos7
                                           cp -af _topdir/SRPMS $artdir
@@ -114,7 +116,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -161,7 +163,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -208,7 +210,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -255,7 +257,8 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs() + '--build-arg FVERSION=37'
+                            additionalBuildArgs dockerBuildArgs() +
+                                                '--build-arg FVERSION=37 --build-arg PACKAGINGDIR=. '
                         }
                     }
                     steps {
@@ -300,7 +303,8 @@ pipeline {
                             filename 'Dockerfile.ubuntu.20.04'
                             label 'docker_runner'
                             args '--privileged=true'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs '--build-arg PACKAGINGDIR=. ' + dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                         }
                     }
                     steps {
