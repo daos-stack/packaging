@@ -48,6 +48,7 @@ RUN dnf -y upgrade && \
 # https://github.com/rpm-software-management/rpmlint/pull/795 in it
 # But make sure to patch after dnf upgrade so that an upgraded rpmlint
 # RPM doesn't wipe out our patch
+RUN set -x; ls -la .; ls -ld packaging; ls -l packaging
 COPY ./packaging/rpmlint--ignore-unused-rpmlintrc.patch .
 RUN (cd $(python3 -c 'import site; print(site.getsitepackages()[-1])') &&                      \
      if ! grep -e --ignore-unused-rpmlintrc rpmlint/cli.py; then                               \
