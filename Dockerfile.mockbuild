@@ -15,16 +15,19 @@ LABEL maintainer="daos@daos.groups.io"
 ARG REPO_FILE_URL
 RUN if [ -n "$REPO_FILE_URL" ]; then                            \
         cd /etc/yum.repos.d/ &&                                 \
-        curl -f -o daos_ci-fedora-artifactory.repo.tmp          \
+        curl -k -f -o daos_ci-fedora-artifactory.repo.tmp       \
              "$REPO_FILE_URL"daos_ci-fedora-artifactory.repo && \
-        rm -f *.repo &&                                         \
+        for file in *.repo; do                                  \
+            true > $file;                                       \
+        done;                                                   \
         mv daos_ci-fedora-artifactory.repo{.tmp,};              \
     fi
 
 # Install basic tools
 RUN dnf -y install mock make                                        \
                    rpm-build createrepo rpmlint redhat-lsb-core git \
-                   python-srpm-macros rpmdevtools
+                   python-srpm-macros rpmdevtools &&                \
+    dnf -y clean all
 
 # use same UID as host and default value of 1000 if not specified
 ARG UID=1000
