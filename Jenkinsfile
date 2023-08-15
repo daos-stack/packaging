@@ -69,8 +69,7 @@ pipeline {
                             args  '--group-add mock' +
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'
-                            additionalBuildArgs dockerBuildArgs() + ' --build-arg CB9=' +
-                                                sh(script: 'echo $$-$HOSTNAME', returnStdout: true)
+                            additionalBuildArgs dockerBuildArgs()
                          }
                     }
                     steps {
