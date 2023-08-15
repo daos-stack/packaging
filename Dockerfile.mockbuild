@@ -50,7 +50,7 @@ RUN dnf -y upgrade && \
 # RPM doesn't wipe out our patch
 ARG CACHEBUST
 RUN set -x; ls -la .; ls -ld packaging; ls -l packaging
-COPY ./packaging/rpmlint--ignore-unused-rpmlintrc.patch .
+#COPY ./packaging/rpmlint--ignore-unused-rpmlintrc.patch .
 RUN (cd $(python3 -c 'import site; print(site.getsitepackages()[-1])') &&                      \
      if ! grep -e --ignore-unused-rpmlintrc rpmlint/cli.py; then                               \
          if ! patch -p1; then                                                                  \
