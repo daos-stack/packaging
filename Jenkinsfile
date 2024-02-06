@@ -66,9 +66,10 @@ pipeline {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args  '--group-add mock' +
+                            args  '--group-add mock'     +
                                   ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
+                                  ' --privileged=true'   +
+                                  ' -v /scratch:/scratch'
                             additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
@@ -113,9 +114,10 @@ pipeline {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args  '--group-add mock' +
+                            args  '--group-add mock'     +
                                   ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
+                                  ' --privileged=true'   +
+                                  ' -v /scratch:/scratch'
                             additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
@@ -160,9 +162,10 @@ pipeline {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args  '--group-add mock' +
+                            args  '--group-add mock'     +
                                   ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
+                                  ' --privileged=true'   +
+                                  ' -v /scratch:/scratch'
                             additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
                          }
                     }
@@ -207,9 +210,10 @@ pipeline {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
                             label 'docker_runner'
-                            args  '--group-add mock' +
+                            args  '--group-add mock'     +
                                   ' --cap-add=SYS_ADMIN' +
-                                  ' --privileged=true'
+                                  ' --privileged=true'   +
+                                  ' -v /scratch:/scratch'
                             additionalBuildArgs dockerBuildArgs() +
                                                 '--build-arg FVERSION=37 --build-arg PACKAGINGDIR=. '
                         }
