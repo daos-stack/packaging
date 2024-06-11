@@ -424,6 +424,8 @@ packaging_check:
 	          --exclude libfabric.spec                      \
 	          --exclude Makefile                            \
 	          --exclude README.md                           \
+	          --exclude SECURITY.md                         \
+	          --exclude LICENSE                             \
 	          --exclude _topdir                             \
 	          --exclude \*.tar.\*                           \
 	          --exclude \*.code-workspace                   \
