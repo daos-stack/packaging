@@ -71,7 +71,7 @@ pipeline {
                                   ' --cap-add=SYS_ADMIN' +
                                   ' --privileged=true'   +
                                   ' -v /scratch:/scratch'
-                            additionalBuildArgs dockerBuildArgs() + '--build-arg PACKAGINGDIR=. '
+                            additionalBuildArgs dockerBuildArgs() + '--build-arg FVERSION=latest --build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
@@ -120,7 +120,7 @@ pipeline {
                                   ' --privileged=true'   +
                                   ' -v /scratch:/scratch'
                             additionalBuildArgs dockerBuildArgs() +
-                                                '--build-arg FVERSION=41  --build-arg PACKAGINGDIR=. '
+                                                '--build-arg FVERSION=41 --build-arg PACKAGINGDIR=. '
                          }
                     }
                     steps {
