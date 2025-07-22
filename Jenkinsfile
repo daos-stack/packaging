@@ -403,6 +403,10 @@ pipeline {
                     }
                 } //stage('Build libfabric on Leap 15 (Fedora 41)')
                 stage('Build libfabric on Leap 15.5') {
+   		            when {
+                        /* disabled until https://daosio.atlassian.net/browse/SRE-3219 is fixed */
+                        expression { false }
+                    }
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
@@ -452,6 +456,10 @@ pipeline {
                     }
                 } //stage('Build libfabric on Leap 15.5')
                 stage('Build libfabric on Leap 15.5 (Fedora 41)') {
+   		            when {
+                        /* disabled until https://daosio.atlassian.net/browse/SRE-3219 is fixed */
+                        expression { false }
+                    }
                     agent {
                         dockerfile {
                             filename 'Dockerfile.mockbuild'
