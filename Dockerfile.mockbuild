@@ -40,14 +40,13 @@ RUN echo "https_proxy=${DAOS_HTTPS_PROXY}" >> /etc/environment && \
 # script to setup local repo if available
 COPY ./packaging/scripts/repo-helper-fedora.sh /tmp/repo-helper.sh
 
-RUN chmod +x /tmp/repo-helper.sh &&                 \
-    /tmp/repo-helper.sh &&                          \
+RUN chmod +x /tmp/repo-helper.sh && \
+    /tmp/repo-helper.sh &&          \
     rm -f /tmp/repo-helper.sh
 
 # Install basic tools
-RUN dnf -y install mock make                                        \
-                   rpm-build createrepo rpmlint redhat-lsb-core git \
-                   python-srpm-macros rpmdevtools &&                \
+RUN dnf -y install mock make rpm-build createrepo rpmlint git \
+        python-srpm-macros rpmdevtools &&                     \
     dnf -y clean all
 
 # use same UID as host and default value of 1000 if not specified
