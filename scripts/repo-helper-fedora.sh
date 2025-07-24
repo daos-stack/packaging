@@ -8,6 +8,7 @@ set -uex
 : "${DAOS_LAB_CA_FILE_URL:=}"
 : "${FVERSION:=latest}"
 : "${REPOSITORY_NAME:=artifactory}"
+: "${archive:=}"
 
 is_fedora_eol() {
     local eol_url fedora_version eol_date today
@@ -30,10 +31,6 @@ is_fedora_eol() {
 disable_repos () {
     local repos_dir="$1"
     shift
-    local archive="${1:-}"
-    if [[ -n "$archive" ]]; then
-        shift
-    fi
     local save_repos
     IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora${archive}-${REPOSITORY_NAME}"
     if [ -n "$REPO_FILE_URL" ]; then
@@ -77,16 +74,13 @@ if [ -n "$REPO_FILE_URL" ]; then
     install_optional_ca
     if is_fedora_eol; then
         archive="-archive"
-    else
-        archive=""
     fi
-
     mkdir -p /etc/yum.repos.d
     pushd /etc/yum.repos.d/
     curl -k --noproxy '*' -sSf                                  \
          -o "daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"  \
          "${REPO_FILE_URL}daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"
-    disable_repos "/etc/yum.repos.d/" "${archive}"
+    disable_repos /etc/yum.repos.d/
     popd
 fi
 dnf -y install dnf-plugins-core
