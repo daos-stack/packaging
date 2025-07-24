@@ -10,19 +10,19 @@ set -uex
 : "${REPOSITORY_NAME:=artifactory}"
 
 is_fedora_eol() {
-    local fedora_version
-    fedora_version=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
-    local eol_date
-    eol_date=$(curl -s https://endoflife.date/api/fedora.json | jq -r ".[] | select(.cycle == \"$fedora_version\") | .eol")
-    if [[ -z "$eol_date" ]]; then
-        return 0
-    fi
-    local today
-    today=$(date +%Y-%m-%d)
-    if [[ "$today" > "$eol_date" ]]; then
-        return 0  # true: EOL
+    local eol_url fedora_version eol_date today
+    if [ -n "$REPO_FILE_URL" ]; then
+        eol_url="${REPO_FILE_URL%repo-files/}eol-proxy/fedora.json"
+        fedora_version=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+        eol_date=$(curl -s "$eol_url" | jq -r ".[] | select(.cycle == \"$fedora_version\") | .eol")
+        if [[ -z "$eol_date" ]]; then
+            return 1 # Assume NOT EOL if data missing
+        fi
+        today=$(date +%Y-%m-%d)
+        [[ "$today" > "$eol_date" ]]
+        return $?  # Return 0 if EOL, 1 if not
     else
-        return 1  # false: not EOL
+        return 1 # Assume NOT EOL if url is missing
     fi
 }
 
