@@ -402,6 +402,7 @@ pipeline {
                         }
                     }
                 } //stage('Build libfabric on Leap 15 (Fedora 41)')
+                // Leap 15.5 requires Fedora 38 or older
                 stage('Build libfabric on Leap 15.5 (Fedora 38)') {
                     agent {
                         dockerfile {
