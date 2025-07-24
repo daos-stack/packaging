@@ -8,18 +8,28 @@ set -uex
 : "${DAOS_LAB_CA_FILE_URL:=}"
 : "${FVERSION:=latest}"
 : "${REPOSITORY_NAME:=artifactory}"
-: "${archive:=}"
-if [ "$FVERSION" != "latest" ]; then
-    if [ "$FVERSION" != "42" ]; then
-        if [ "$FVERSION" != "41" ]; then
-            archive="-archive"
-        fi
+
+is_fedora_eol() {
+    local fedora_version
+    fedora_version=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+    local eol_date
+    eol_date=$(curl -s https://endoflife.date/api/fedora.json | jq -r ".[] | select(.cycle == \"$fedora_version\") | .eol")
+    if [[ -z "$eol_date" ]]; then
+        return 0
     fi
-fi
+    local today
+    today=$(date +%Y-%m-%d)
+    if [[ "$today" > "$eol_date" ]]; then
+        return 0  # true: EOL
+    else
+        return 1  # false: not EOL
+    fi
+}
 
 # shellcheck disable=SC2120
 disable_repos () {
     local repos_dir="$1"
+    local archive="${2:-}"
     shift
     local save_repos
     IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora${archive}-${REPOSITORY_NAME}"
@@ -62,12 +72,18 @@ install_optional_ca() {
 if [ -n "$REPO_FILE_URL" ]; then
     install_curl
     install_optional_ca
+    if is_fedora_eol; then
+        archive="-archive"
+    else
+        archive=""
+    fi
+
     mkdir -p /etc/yum.repos.d
     pushd /etc/yum.repos.d/
     curl -k --noproxy '*' -sSf                                  \
          -o "daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"  \
          "${REPO_FILE_URL}daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"
-    disable_repos /etc/yum.repos.d/
+    disable_repos "/etc/yum.repos.d/" "${archive}"
     popd
 fi
 dnf -y install dnf-plugins-core
