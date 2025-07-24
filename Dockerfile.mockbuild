@@ -17,9 +17,6 @@ ARG REPO_FILE_URL
 ARG DAOS_LAB_CA_FILE_URL
 ARG REPOSITORY_NAME
 
-# jq is required for repo-helper-fedora.sh
-RUN dnf -y install jq
-
 # script to install OS updates basic tools and daos dependencies
 # COPY ./utils/scripts/install-fedora.sh /tmp/install.sh
 # script to setup local repo if available
