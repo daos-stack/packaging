@@ -8,13 +8,21 @@ set -uex
 : "${DAOS_LAB_CA_FILE_URL:=}"
 : "${FVERSION:=latest}"
 : "${REPOSITORY_NAME:=artifactory}"
+: "${archive:=}"
+if [ "$FVERSION" != "latest" ]; then
+    if [ "$FVERSION" != "42" ]; then
+        if [ "$FVERSION" != "41" ]; then
+            archive="-archive"
+        fi
+    fi
+fi
 
 # shellcheck disable=SC2120
 disable_repos () {
     local repos_dir="$1"
     shift
     local save_repos
-    IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora-${REPOSITORY_NAME}"
+    IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora${archive}-${REPOSITORY_NAME}"
     if [ -n "$REPO_FILE_URL" ]; then
         pushd "$repos_dir"
         local repo
@@ -57,8 +65,8 @@ if [ -n "$REPO_FILE_URL" ]; then
     mkdir -p /etc/yum.repos.d
     pushd /etc/yum.repos.d/
     curl -k --noproxy '*' -sSf                                  \
-         -o "daos_ci-fedora-${REPOSITORY_NAME}.repo"  \
-         "${REPO_FILE_URL}daos_ci-fedora-${REPOSITORY_NAME}.repo"
+         -o "daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"  \
+         "${REPO_FILE_URL}daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"
     disable_repos /etc/yum.repos.d/
     popd
 fi
