@@ -30,7 +30,7 @@ is_fedora_eol() {
 disable_repos () {
     local repos_dir="$1"
     shift
-    local archive="${2:-}"
+    local archive="${1:-}"
     if [[ -n "$archive" ]]; then
         shift
     fi
