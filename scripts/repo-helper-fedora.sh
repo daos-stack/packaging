@@ -8,18 +8,11 @@ set -uex
 : "${DAOS_LAB_CA_FILE_URL:=}"
 : "${FVERSION:=latest}"
 : "${REPOSITORY_NAME:=artifactory}"
-: "${archive:=}"
-if [ "$FVERSION" != "latest" ]; then
-    if [ "$FVERSION" != "42" ]; then
-        if [ "$FVERSION" != "41" ]; then
-            archive="-archive"
-        fi
-    fi
-fi
 
 # shellcheck disable=SC2120
 disable_repos () {
     local repos_dir="$1"
+    local archive="$2"
     shift
     local save_repos
     IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora${archive}-${REPOSITORY_NAME}"
@@ -62,12 +55,20 @@ install_optional_ca() {
 if [ -n "$REPO_FILE_URL" ]; then
     install_curl
     install_optional_ca
+    # Test if Fedora $VERSION is available in the primary repo,
+    # otherwise use the `-archive` one.
+    if curl --insecure --noproxy '*' --head --silent --fail \
+              "${REPO_FILE_URL}daos_ci-fedora-${REPOSITORY_NAME}.repo" > /dev/null; then
+        archive=""
+    else
+        archive="-archive"
+    fi
     mkdir -p /etc/yum.repos.d
     pushd /etc/yum.repos.d/
     curl -k --noproxy '*' -sSf                                  \
          -o "daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"  \
          "${REPO_FILE_URL}daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"
-    disable_repos /etc/yum.repos.d/
+    disable_repos "/etc/yum.repos.d/" "${archive}"
     popd
 fi
 dnf -y install dnf-plugins-core
