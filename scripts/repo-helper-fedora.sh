@@ -31,6 +31,7 @@ disable_repos () {
     local repos_dir="$1"
     local archive="${2:-}"
     shift
+    shift
     local save_repos
     IFS=" " read -r -a save_repos <<< "${*:-} daos_ci-fedora${archive}-${REPOSITORY_NAME}"
     if [ -n "$REPO_FILE_URL" ]; then
