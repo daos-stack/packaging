@@ -16,6 +16,7 @@ LABEL maintainer="daos@daos.groups.io"
 ARG REPO_FILE_URL
 ARG DAOS_LAB_CA_FILE_URL
 ARG REPOSITORY_NAME
+
 # script to install OS updates basic tools and daos dependencies
 # COPY ./utils/scripts/install-fedora.sh /tmp/install.sh
 # script to setup local repo if available
@@ -26,9 +27,9 @@ RUN chmod +x /tmp/repo-helper.sh &&                 \
     rm -f /tmp/repo-helper.sh
 
 # Install basic tools
-RUN dnf -y install mock make                                        \
-                   rpm-build createrepo rpmlint redhat-lsb-core git \
-                   python-srpm-macros rpmdevtools &&                \
+RUN dnf -y install mock make                         \
+                   rpm-build createrepo rpmlint git  \
+                   python-srpm-macros rpmdevtools && \
     dnf -y clean all
 
 # use same UID as host and default value of 1000 if not specified
