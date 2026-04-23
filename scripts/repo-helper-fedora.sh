@@ -61,7 +61,7 @@ install_curl() {
 install_optional_ca() {
     ca_storage="/etc/pki/ca-trust/source/anchors/"
     if [ -n "$DAOS_LAB_CA_FILE_URL" ]; then
-        curl -k --noproxy '*' -sSf -o "${ca_storage}lab_ca_file.crt" \
+        curl -k -sSf -o "${ca_storage}lab_ca_file.crt" \
             "$DAOS_LAB_CA_FILE_URL"
         update-ca-trust
     fi
@@ -80,7 +80,7 @@ if [ -n "$REPO_FILE_URL" ]; then
     fi
     mkdir -p /etc/yum.repos.d
     pushd /etc/yum.repos.d/
-    curl -k --noproxy '*' -sSf                                  \
+    curl -k -sSf                                  \
          -o "daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"  \
          "${REPO_FILE_URL}daos_ci-fedora${archive}-${REPOSITORY_NAME}.repo"
     disable_repos /etc/yum.repos.d/
